@@ -1,4 +1,8 @@
-use poly_rpc_prototype::kaspadrpc;
+use poly_rpc_prototype::protowire::{
+    rpc_client::RpcClient,
+    KaspadRequest, kaspad_request,
+    GetBlockRequestMessage,
+};
 
 // use std::error::Error;
 // use std::time::Duration;
@@ -10,16 +14,18 @@ use poly_rpc_prototype::kaspadrpc;
 // use tonic::transport::Channel;
 use tonic::Request;
 
-use kaspadrpc::kaspad_rpc_client::KaspadRpcClient;
-use kaspadrpc::GetBlockRequestMessage;
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut client = KaspadRpcClient::connect("http://[::1]:10000").await?;
+    let mut client = RpcClient::connect("http://[::1]:10000").await?;
 
     println!("*** SIMPLE RPC ***");
     let response = client
-        .get_block(Request::new(GetBlockRequestMessage { hash: String::from("A"), include_transactions: false }))
+        .message_stream(Request::new(KaspadRequest {
+            payload:
+                Some(kaspad_request::Payload::GetBlockRequest(
+                    GetBlockRequestMessage { hash: String::from("A"), include_transactions: false }
+                ))
+            }))
         .await?;
     println!("RESPONSE = {:#?}", response);
 
