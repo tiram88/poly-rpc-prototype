@@ -1,0 +1,77 @@
+// RPC-related types. Request messages, response messages, and dependant types.
+//
+// Clients are expected to build RequestMessages and wrap them in KaspadMessage. (see messages.proto)
+//
+// Having received a RequestMessage, (wrapped in a KaspadMessage) the RPC server will respond with a
+// ResponseMessage (likewise wrapped in a KaspadMessage) respective to the original RequestMessage.
+//
+// **IMPORTANT:** This API is a work in progress and is subject to break between versions.
+//
+syntax = "proto3";
+package protowire;
+
+// RPCError represents a generic non-internal error.
+//
+// Receivers of any ResponseMessage are expected to check whether its error field is not null.
+message RPCError{
+  string message = 1;
+}
+
+message RpcBlock {
+  RpcBlockHeader header = 1;
+  // repeated RpcTransaction transactions = 2;
+  // RpcBlockVerboseData verboseData = 3;
+}
+
+message RpcBlockHeader {
+  uint32 version = 1;
+  repeated RpcBlockLevelParents parents = 12;
+  string hashMerkleRoot = 3;
+  string acceptedIdMerkleRoot = 4;
+  string utxoCommitment = 5;
+  int64 timestamp = 6;
+  uint32 bits = 7;
+  uint64 nonce = 8;
+  uint64 daaScore = 9;
+  string blueWork = 10;
+  string pruningPoint = 14;
+  uint64 blueScore = 13;
+}
+
+message RpcBlockLevelParents {
+  repeated string parentHashes = 1;
+}
+
+
+// GetBlockRequestMessage requests information about a specific block
+message GetBlockRequestMessage{
+  // The hash of the requested block
+  string hash = 1;
+
+  // Whether to include transaction data in the response
+  bool includeTransactions = 3;
+}
+
+message GetBlockResponseMessage{
+  RpcBlock block = 3;
+  RPCError error = 1000;
+}
+
+
+// NotifyBlockAddedRequestMessage registers this connection for blockAdded notifications.
+//
+// See: BlockAddedNotificationMessage
+message NotifyBlockAddedRequestMessage{
+}
+
+message NotifyBlockAddedResponseMessage{
+  RPCError error = 1000;
+}
+
+// BlockAddedNotificationMessage is sent whenever a blocks has been added (NOT accepted)
+// into the DAG.
+//
+// See: NotifyBlockAddedRequestMessage
+message BlockAddedNotificationMessage{
+  RpcBlock block = 3;
+}
