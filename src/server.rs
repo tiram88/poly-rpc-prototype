@@ -37,22 +37,7 @@ impl Rpc for RpcService {
             },
             Some(kaspad_request::Payload::GetBlockRequest(_get_block_request_message)) => {
                 Some(kaspad_response::Payload::GetBlockResponse(GetBlockResponseMessage {
-                    block: Some(RpcBlock {
-                        header: Some(RpcBlockHeader {
-                            version: 1,
-                            parents: vec![],
-                            hash_merkle_root: String::from("A"),
-                            accepted_id_merkle_root: String::from("B"),
-                            utxo_commitment: String::from("ok"),
-                            timestamp: 123456789,
-                            bits: 1,
-                            nonce: 1234,
-                            daa_score: 123456,
-                            blue_work: String::from("1234567890"),
-                            pruning_point: String::from("C"),
-                            blue_score: 12345678901,
-                        }),
-                    }),
+                    block: Some(create_dummy_rpc_block()),
                     error: None,
                 }))
             },
@@ -63,6 +48,25 @@ impl Rpc for RpcService {
         };
 
         return Ok(Response::new(response));
+    }
+}
+
+fn create_dummy_rpc_block() -> RpcBlock {
+    RpcBlock {
+        header: Some(RpcBlockHeader {
+            version: 1,
+            parents: vec![],
+            hash_merkle_root: String::from("A"),
+            accepted_id_merkle_root: String::from("B"),
+            utxo_commitment: String::from("ok"),
+            timestamp: 123456789,
+            bits: 1,
+            nonce: 1234,
+            daa_score: 123456,
+            blue_work: String::from("1234567890"),
+            pruning_point: String::from("C"),
+            blue_score: 12345678901,
+        }),
     }
 }
 
