@@ -18,5 +18,5 @@ message KaspadResponse {
 }
 
 service RPC {
-  rpc MessageStream (KaspadRequest) returns (KaspadResponse) {}
+  rpc MessageStream (stream KaspadRequest) returns (stream KaspadResponse) {}
 }
