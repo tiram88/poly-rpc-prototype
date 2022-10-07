@@ -1,0 +1,17 @@
+[package]
+name = "rpc-grpc"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+include.workspace = true
+license.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rpc-models.workspace = true
+tonic.workspace = true
+prost.workspace = true
+
+[build-dependencies]
+tonic-build = { version = "0.8" }

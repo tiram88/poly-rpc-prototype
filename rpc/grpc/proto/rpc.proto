@@ -19,8 +19,8 @@ message RPCError{
 
 message RpcBlock {
   RpcBlockHeader header = 1;
-  // repeated RpcTransaction transactions = 2;
-  // RpcBlockVerboseData verboseData = 3;
+  repeated RpcTransaction transactions = 2;
+  RpcBlockVerboseData verboseData = 3;
 }
 
 message RpcBlockHeader {
@@ -41,6 +41,77 @@ message RpcBlockHeader {
 message RpcBlockLevelParents {
   repeated string parentHashes = 1;
 }
+message RpcBlockVerboseData{
+  string hash = 1;
+  double difficulty = 11;
+  string selectedParentHash = 13;
+  repeated string transactionIds = 14;
+  bool isHeaderOnly = 15;
+  uint64 blueScore = 16;
+  repeated string childrenHashes = 17;
+  repeated string mergeSetBluesHashes = 18;
+  repeated string mergeSetRedsHashes = 19;
+  bool isChainBlock = 20;
+}
+
+message RpcTransaction {
+  uint32 version = 1;
+  repeated RpcTransactionInput inputs = 2;
+  repeated RpcTransactionOutput outputs = 3;
+  uint64 lockTime = 4;
+  string subnetworkId = 5;
+  uint64 gas = 6;
+  string payload = 8;
+  RpcTransactionVerboseData verboseData = 9;
+}
+
+message RpcTransactionInput {
+  RpcOutpoint previousOutpoint = 1;
+  string signatureScript = 2;
+  uint64 sequence = 3;
+  uint32 sigOpCount = 5;
+  RpcTransactionInputVerboseData verboseData = 4;
+}
+
+message RpcScriptPublicKey {
+  uint32 version = 1;
+  string scriptPublicKey = 2;
+}
+
+message RpcTransactionOutput {
+  uint64 amount = 1;
+  RpcScriptPublicKey scriptPublicKey = 2;
+  RpcTransactionOutputVerboseData verboseData = 3;
+}
+
+message RpcOutpoint {
+  string transactionId = 1;
+  uint32 index = 2;
+}
+
+message RpcUtxoEntry {
+  uint64 amount = 1;
+  RpcScriptPublicKey scriptPublicKey = 2;
+  uint64 blockDaaScore = 3;
+  bool isCoinbase = 4;
+}
+
+message RpcTransactionVerboseData{
+  string transactionId = 1;
+  string hash = 2;
+  uint64 mass = 4;
+  string blockHash = 12;
+  uint64 blockTime = 14;
+}
+
+message RpcTransactionInputVerboseData{
+}
+
+message RpcTransactionOutputVerboseData{
+  string scriptPublicKeyType = 5;
+  string scriptPublicKeyAddress = 6;
+}
+
 
 
 // GetBlockRequestMessage requests information about a specific block

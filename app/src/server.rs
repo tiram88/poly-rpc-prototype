@@ -1,4 +1,4 @@
-use poly_rpc_prototype::protowire::{
+use rpc_grpc::protowire::{
     rpc_server::{Rpc, RpcServer},
     KaspadRequest, KaspadResponse,
     kaspad_response, kaspad_request,
@@ -7,7 +7,7 @@ use poly_rpc_prototype::protowire::{
 };
 
 // use std::collections::HashMap;
-use std::pin::Pin;
+use std::{pin::Pin, time::{SystemTime, UNIX_EPOCH}};
 // use std::sync::Arc;
 // use std::time::Instant;
 
@@ -16,7 +16,7 @@ use futures::{Stream, StreamExt};
 // use tokio_stream::wrappers::ReceiverStream;
 use tonic::{
     transport::Server,
-    Request, Response
+    Request, Response,
 };
 
 #[derive(Debug)]
@@ -73,7 +73,7 @@ fn create_dummy_rpc_block() -> RpcBlock {
             hash_merkle_root: String::from("A"),
             accepted_id_merkle_root: String::from("B"),
             utxo_commitment: String::from("ok"),
-            timestamp: 123456789,
+            timestamp: SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as i64,
             bits: 1,
             nonce: 1234,
             daa_score: 123456,
@@ -81,6 +81,8 @@ fn create_dummy_rpc_block() -> RpcBlock {
             pruning_point: String::from("C"),
             blue_score: 12345678901,
         }),
+        transactions: vec![],
+        verbose_data: None,
     }
 }
 

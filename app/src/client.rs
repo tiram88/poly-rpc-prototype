@@ -1,8 +1,8 @@
-use poly_rpc_prototype::protowire::KaspadResponse;
-use poly_rpc_prototype::protowire::{
+use rpc_grpc::protowire::{
     rpc_client::RpcClient,
     KaspadRequest, kaspad_request,
     GetBlockRequestMessage,
+    KaspadResponse,
 };
 
 // use std::error::Error;
