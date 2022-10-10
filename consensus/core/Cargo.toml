@@ -1,0 +1,12 @@
+[package]
+name = "consensus-core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+include.workspace = true
+license.workspace = true
+
+[dependencies]
+faster-hex.workspace = true
+serde.workspace = true
+borsh.workspace = true

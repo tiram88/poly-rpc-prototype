@@ -1,9 +1,11 @@
 [workspace]
 members = [
-  "app",
-  "hashes",
-  "rpc/models",
-  "rpc/grpc",
+    "app",
+    "hashes",
+    "rpc/core",
+    "rpc/grpc",
+    "consensus",
+    "consensus/core",
 ]
 
 [workspace.package]
@@ -16,8 +18,10 @@ include = ["src/**/*.rs", "Cargo.toml"]
 [workspace.dependencies]
 app = { path = "app" }
 hashes = { path = "hashes" }
-rpc-models = { path = "rpc/models" }
+rpc-core = { path = "rpc/core" }
 rpc-grpc = { path = "rpc/grpc" }
+consensus = { path = "consensus" }
+consensus-core = { path = "consensus/core" }
 
 rand = "0.8"
 faster-hex = "0.6"
@@ -28,4 +32,6 @@ tokio = { version = "1", features = ["sync"] }
 criterion = { version = "0.4", default-features = false }
 tonic = { version = "0.8" }
 prost = { version = "0.11" }
-
+derive_more = { version = "0.99" }
+thiserror = "1"
+borsh = "0.9.3"

@@ -19,9 +19,10 @@ name="client"
 path="./src/client.rs"
 
 [dependencies]
-rpc-grpc.workspace = true
 hashes.workspace = true
-rpc-models.workspace = true
+rpc-grpc.workspace = true
+rpc-core.workspace = true
+consensus-core.workspace = true
 tonic.workspace = true
 futures = { version = "0.3", default-features = false, features = ["alloc"] }
 serde.workspace = true

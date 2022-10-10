@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use borsh::{BorshSerialize, BorshDeserialize, BorshSchema};
-use crate::prelude::RpcHash;
+use crate::{prelude::RpcHash, RpcBlueWorkType};
 
 // pub struct RpcError {
 //     pub message : String,
@@ -18,7 +18,7 @@ pub struct RpcBlockHeader  {
     pub bits: u32,
     pub nonce: u64,
     pub daa_score: u64,
-    pub blue_work: u128,
+    pub blue_work: RpcBlueWorkType,
     pub pruning_point: RpcHash,
     pub blue_score: u64,
 }

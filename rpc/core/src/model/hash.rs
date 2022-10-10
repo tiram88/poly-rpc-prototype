@@ -5,9 +5,11 @@ use borsh::{BorshSerialize, BorshDeserialize, BorshSchema};
 use std::fmt::{Debug, Display, Formatter};
 use std::str::{self, FromStr};
 
-// pub struct RpcError {
-//     pub message : String,
-// }
+use crate::errors;
+
+// This is a temporary implementation of RpcHash which basically copies Hash code.
+// I would prefer a Newtype strategy here.
+// This requires to fix BorshSchema implementation.
 
 #[derive(Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
 #[serde(rename_all = "camelCase")]
@@ -66,7 +68,7 @@ impl Display for RpcHash {
 }
 
 impl FromStr for RpcHash {
-    type Err = faster_hex::Error;
+    type Err = errors::RpcError;
 
     #[inline]
     fn from_str(hash_str: &str) -> Result<Self, Self::Err> {

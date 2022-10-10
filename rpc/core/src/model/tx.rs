@@ -1,9 +1,8 @@
 use serde::{Deserialize, Serialize};
 use borsh::{BorshSerialize, BorshDeserialize, BorshSchema};
+use crate::RpcHash;
 
-// pub struct RpcError {
-//     pub message : String,
-// }
+pub type TransactionId = RpcHash;
 
 #[derive(Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
 #[serde(rename_all = "camelCase")]
@@ -30,13 +29,6 @@ pub struct RpcTransactionInput  {
 
 #[derive(Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct RpcScriptPublicKey  {
-    pub version : u32,
-    pub script_public_key: String, // FIXME
-}
-
-#[derive(Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
-#[serde(rename_all = "camelCase")]
 pub struct RpcTransactionOutput  {
     pub amount: u64,
     pub script_public_key: RpcScriptPublicKey,
@@ -57,6 +49,13 @@ pub struct RpcUtxoEntry  {
     pub script_public_key: RpcScriptPublicKey,
     pub block_daa_score: u64,
     pub is_coinbase: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct RpcScriptPublicKey  {
+    pub script_public_key: Vec<u8>, // Fixed?
+    pub version : u32,
 }
 
 #[derive(Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
