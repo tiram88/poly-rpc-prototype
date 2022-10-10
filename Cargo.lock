@@ -800,6 +800,7 @@ name = "hashes"
 version = "0.1.0"
 dependencies = [
  "blake2b_simd",
+ "borsh",
  "cc",
  "criterion",
  "faster-hex",
@@ -1301,6 +1302,7 @@ dependencies = [
 name = "rpc-grpc"
 version = "0.1.0"
 dependencies = [
+ "faster-hex",
  "prost",
  "rpc-core",
  "tonic",

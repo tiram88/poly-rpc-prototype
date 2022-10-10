@@ -12,6 +12,7 @@ license.workspace = true
 rpc-core.workspace = true
 tonic.workspace = true
 prost.workspace = true
+faster-hex.workspace = true
 
 [build-dependencies]
 tonic-build = { version = "0.8" }

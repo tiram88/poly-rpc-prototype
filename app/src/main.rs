@@ -1,10 +1,13 @@
 use std::{str::FromStr};
 use hashes::Hash;
+use rpc_grpc::protowire;
+use rpc_core;
 
 fn main() {
     test_hashes();
     test_from();
     test_blue_score();
+    test_rpc_block_level_parents();
 }
 
 fn test_hashes() {
@@ -51,6 +54,22 @@ fn test_blue_score() {
 
     let b5 = RpcBlueWorkType::from_str("1234567890123456789012345678901234567890");
     println!("rpc blue score parse error (FromStr), overflow {:?}", b5);
+}
+
+fn test_rpc_block_level_parents() {
+    let a_core = rpc_core::RpcBlockLevelParents {
+        parent_hashes: vec![Hash::from(1), Hash::from(123456789)],
+    };
+    let a_grpc: protowire::RpcBlockLevelParents = (&a_core).try_into().unwrap();
+    println!("A core RpcBlockLevelParents {:?}", a_core);
+    println!("A gRPC RpcBlockLevelParents {:?}", a_grpc);
+
+    let b_grpc = protowire::RpcBlockLevelParents {
+        parent_hashes: vec!["0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF".to_string(), "wrong hash".to_string()],
+    };
+    let b_core_result: rpc_core::RpcResult<rpc_core::RpcBlockLevelParents> = (&b_grpc).try_into();
+    println!("B gRPC RpcBlockLevelParents {:?}", b_grpc);
+    println!("B core RpcBlockLevelParents result {:?}", b_core_result);
 }
 
 #[derive(Debug)]

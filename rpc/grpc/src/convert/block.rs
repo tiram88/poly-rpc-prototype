@@ -70,21 +70,21 @@ impl TryFrom<&protowire::RpcBlockVerboseData> for rpc_core::RpcBlockVerboseData 
             transaction_ids: item.transaction_ids
                 .iter()
                 .map(|x| RpcHash::from_str(x))
-                .collect::<RpcResult<Vec<RpcHash>>>()?,
+                .collect::<Result<Vec<rpc_core::RpcHash>, faster_hex::Error>>()?,
             is_header_only: item.is_header_only,
             blue_score: item.blue_score.into(),
             children_hashes: item.children_hashes
                 .iter()
                 .map(|x| RpcHash::from_str(x))
-                .collect::<RpcResult<Vec<RpcHash>>>()?,
+                .collect::<Result<Vec<rpc_core::RpcHash>, faster_hex::Error>>()?,
             merge_set_blues_hashes: item.merge_set_blues_hashes
                 .iter()
                 .map(|x| RpcHash::from_str(x))
-                .collect::<RpcResult<Vec<RpcHash>>>()?,
+                .collect::<Result<Vec<rpc_core::RpcHash>, faster_hex::Error>>()?,
             merge_set_reds_hashes: item.merge_set_reds_hashes
                 .iter()
                 .map(|x| RpcHash::from_str(x))
-                .collect::<RpcResult<Vec<RpcHash>>>()?,
+                .collect::<Result<Vec<rpc_core::RpcHash>, faster_hex::Error>>()?,
             is_chain_block: item.is_chain_block,
         };
         Ok(verbose_data)

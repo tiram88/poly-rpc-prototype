@@ -66,7 +66,7 @@ impl TryFrom<&protowire::RpcBlockLevelParents> for rpc_core::RpcBlockLevelParent
         let parent_hashes: Vec<rpc_core::RpcHash> = item.parent_hashes
             .iter()
             .map(|x| RpcHash::from_str(x))
-            .collect::<RpcResult<Vec<rpc_core::RpcHash>>>()?;
+            .collect::<Result<Vec<rpc_core::RpcHash>, faster_hex::Error>>()?;
         Ok(rpc_core::RpcBlockLevelParents { parent_hashes })
     }
 }
