@@ -6,7 +6,6 @@ use derive_more::{ Display };
 use borsh::{BorshSerialize, BorshDeserialize, BorshSchema};
 use serde::{Serialize, Deserialize};
 use consensus_core::BlueWorkType;
-use thiserror::Error;
 
 use crate::errors;
 
@@ -57,13 +56,6 @@ impl TryFrom<String> for RpcBlueWorkType {
         value.parse()
     }
 }
-
-
-#[derive(Error, Display, Debug, PartialEq, Clone)]
-pub enum RpcBlueWorkTypeParseError {
-    InvalidFormat
-}
-//impl std::error::Error for RpcBlueWorkTypeParseError {}
 
 
 #[cfg(test)]
