@@ -1,5 +1,6 @@
-pub mod model;
+pub mod convert;
 pub mod errors;
+pub mod model;
 pub mod result;
 pub mod stubs;
 
@@ -23,3 +24,4 @@ pub use model::subnets::*;
 pub use model::tx::*;
 pub use errors::*;
 pub use result::*;
+pub use convert::*;
