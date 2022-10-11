@@ -1,4 +1,5 @@
-use std::str::FromStr;
+use std::str::{ self, FromStr};
+use std::fmt::{Debug, Display, Formatter};
 
 use serde::{Deserialize, Serialize};
 use borsh::{BorshSerialize, BorshDeserialize, BorshSchema};
@@ -7,6 +8,7 @@ use borsh::{BorshSerialize, BorshDeserialize, BorshSchema};
 pub const SUBNETWORK_ID_SIZE: usize = 20;
 
 /// The domain representation of a Subnetwork ID
+// Tiram change: Add Borsh Traits
 #[derive(Debug, Clone, Default, Eq, PartialEq, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
 pub struct SubnetworkId([u8; SUBNETWORK_ID_SIZE]);
 
@@ -35,6 +37,16 @@ impl SubnetworkId {
     #[inline]
     pub fn is_builtin_or_native(&self) -> bool {
         *self == SUBNETWORK_ID_NATIVE || self.is_builtin()
+    }
+}
+
+// Tiram change: Add Display impl
+impl Display for SubnetworkId {
+    #[inline]
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let mut hex = [0u8; SUBNETWORK_ID_SIZE * 2];
+        faster_hex::hex_encode(&self.0, &mut hex).expect("The output is exactly twice the size of the input");
+        f.write_str(str::from_utf8(&hex).expect("hex is always valid UTF-8"))
     }
 }
 

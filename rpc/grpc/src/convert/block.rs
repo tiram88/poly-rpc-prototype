@@ -2,19 +2,26 @@ use std::str::FromStr;
 use rpc_core::{RpcHash, RpcError, RpcResult};
 use crate::protowire;
 
+// ----------------------------------------------------------------------------
+// rpc_core to protowire
+// ----------------------------------------------------------------------------
+
 impl From<&rpc_core::RpcBlock> for protowire::RpcBlock {
-    fn from(item: &rpc_core::RpcBlock) -> protowire::RpcBlock {
-        protowire::RpcBlock {
+    fn from(item: &rpc_core::RpcBlock) -> Self {
+        Self {
             header: Some(protowire::RpcBlockHeader::from(&item.header)),
-            transactions: vec![],
+            transactions: item.transactions
+                .iter()
+                .map(|x| protowire::RpcTransaction::from(x))
+                .collect(),
             verbose_data: Some(protowire::RpcBlockVerboseData::from(&item.verbose_data)),
         }
     }
 }
 
 impl From<&rpc_core::RpcBlockVerboseData> for protowire::RpcBlockVerboseData {
-    fn from(item: &rpc_core::RpcBlockVerboseData) -> protowire::RpcBlockVerboseData {
-        protowire::RpcBlockVerboseData {
+    fn from(item: &rpc_core::RpcBlockVerboseData) -> Self {
+        Self {
             hash: item.hash.to_string(),
             difficulty: item.difficulty,
             selected_parent_hash: item.selected_parent_hash.to_string(),
@@ -42,18 +49,25 @@ impl From<&rpc_core::RpcBlockVerboseData> for protowire::RpcBlockVerboseData {
 }
 
 
+// ----------------------------------------------------------------------------
+// protowire to rpc_core
+// ----------------------------------------------------------------------------
+
 impl TryFrom<&protowire::RpcBlock> for rpc_core::RpcBlock {
     type Error = RpcError;
-    fn try_from(item: & protowire::RpcBlock) -> RpcResult<rpc_core::RpcBlock> {
-        let block = rpc_core::RpcBlock {
+    fn try_from(item: & protowire::RpcBlock) -> RpcResult<Self> {
+        let block = Self {
             header: item.header
                 .as_ref()
-                .ok_or(RpcError::MissingBlockHeaderError)?
+                .ok_or(RpcError::MissingRpcFieldError("RpcBlock".to_string(), "header".to_string()))?
                 .try_into()?,
-            transactions: vec![],
+            transactions: item.transactions
+                .iter()
+                .map(|x| rpc_core::RpcTransaction::try_from(x))
+                .collect::<RpcResult<Vec<rpc_core::RpcTransaction>>>()?,
             verbose_data: item.verbose_data
                 .as_ref()
-                .ok_or(RpcError::MissingBlockVerboseDataError)?
+                .ok_or(RpcError::MissingRpcFieldError("RpcBlock".to_string(), "verbose_data".to_string()))?
                 .try_into()?,
         };
         Ok(block)
@@ -62,8 +76,8 @@ impl TryFrom<&protowire::RpcBlock> for rpc_core::RpcBlock {
 
 impl TryFrom<&protowire::RpcBlockVerboseData> for rpc_core::RpcBlockVerboseData {
     type Error = RpcError;
-    fn try_from(item: &protowire::RpcBlockVerboseData) -> RpcResult<rpc_core::RpcBlockVerboseData> {
-        let verbose_data = rpc_core::RpcBlockVerboseData {
+    fn try_from(item: &protowire::RpcBlockVerboseData) -> RpcResult<Self> {
+        let verbose_data = Self {
             hash: RpcHash::from_str(&item.hash)?,
             difficulty: item.difficulty,
             selected_parent_hash: RpcHash::from_str(&item.selected_parent_hash)?,

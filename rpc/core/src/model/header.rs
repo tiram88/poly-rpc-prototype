@@ -2,10 +2,6 @@ use serde::{Deserialize, Serialize};
 use borsh::{BorshSerialize, BorshDeserialize, BorshSchema};
 use crate::{prelude::RpcHash, RpcBlueWorkType};
 
-// pub struct RpcError {
-//     pub message : String,
-// }
-
 #[derive(Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct RpcBlockHeader  {

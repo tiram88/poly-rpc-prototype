@@ -11,6 +11,7 @@ pub const HASH_SIZE: usize = 32;
 pub use hashers::*;
 
 // TODO: Check if we use hash more as an array of u64 or of bytes and change the default accordingly
+// Tiram change: Add Borsh Traits
 #[derive(PartialEq, Eq, Clone, Copy, Hash, Default, Debug, PartialOrd, Ord, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
 pub struct Hash([u8; HASH_SIZE]);
 

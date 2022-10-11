@@ -10,8 +10,9 @@ use consensus_core::BlueWorkType;
 use crate::errors;
 
 
+#[repr(transparent)]
 #[derive(Display, Debug, PartialEq, Copy, Clone, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
-#[serde(try_from = "String", into = "String")]
+#[serde(rename_all = "camelCase", try_from = "String", into = "String")]
 pub struct RpcBlueWorkType(BlueWorkType);
 
 impl From<BlueWorkType> for RpcBlueWorkType {
