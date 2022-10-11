@@ -56,7 +56,7 @@ impl From<&rpc_core::RpcBlockVerboseData> for protowire::RpcBlockVerboseData {
 impl TryFrom<&protowire::RpcBlock> for rpc_core::RpcBlock {
     type Error = RpcError;
     fn try_from(item: & protowire::RpcBlock) -> RpcResult<Self> {
-        let block = Self {
+        Ok(Self {
             header: item.header
                 .as_ref()
                 .ok_or(RpcError::MissingRpcFieldError("RpcBlock".to_string(), "header".to_string()))?
@@ -69,15 +69,14 @@ impl TryFrom<&protowire::RpcBlock> for rpc_core::RpcBlock {
                 .as_ref()
                 .ok_or(RpcError::MissingRpcFieldError("RpcBlock".to_string(), "verbose_data".to_string()))?
                 .try_into()?,
-        };
-        Ok(block)
+        })
     }
 }
 
 impl TryFrom<&protowire::RpcBlockVerboseData> for rpc_core::RpcBlockVerboseData {
     type Error = RpcError;
     fn try_from(item: &protowire::RpcBlockVerboseData) -> RpcResult<Self> {
-        let verbose_data = Self {
+        Ok(Self {
             hash: RpcHash::from_str(&item.hash)?,
             difficulty: item.difficulty,
             selected_parent_hash: RpcHash::from_str(&item.selected_parent_hash)?,
@@ -100,7 +99,6 @@ impl TryFrom<&protowire::RpcBlockVerboseData> for rpc_core::RpcBlockVerboseData 
                 .map(|x| RpcHash::from_str(x))
                 .collect::<Result<Vec<rpc_core::RpcHash>, faster_hex::Error>>()?,
             is_chain_block: item.is_chain_block,
-        };
-        Ok(verbose_data)
+        })
     }
 }

@@ -46,7 +46,7 @@ impl From<&rpc_core::RpcBlockLevelParents> for protowire::RpcBlockLevelParents {
 impl TryFrom<&protowire::RpcBlockHeader> for rpc_core::RpcBlockHeader {
     type Error = RpcError;
     fn try_from(item: &protowire::RpcBlockHeader) -> RpcResult<Self> {
-        let header = Self {
+        Ok(Self {
             version: item.version,
             parents: item.parents
                 .iter()
@@ -62,18 +62,18 @@ impl TryFrom<&protowire::RpcBlockHeader> for rpc_core::RpcBlockHeader {
             blue_work: rpc_core::RpcBlueWorkType::from_str(&item.blue_work)?,
             pruning_point: RpcHash::from_str(&item.pruning_point)?,
             blue_score: item.blue_score,
-        };
-        Ok(header)
+        })
     }
 }
 
 impl TryFrom<&protowire::RpcBlockLevelParents> for rpc_core::RpcBlockLevelParents {
     type Error = RpcError;
     fn try_from(item: &protowire::RpcBlockLevelParents) -> RpcResult<Self> {
-        let parent_hashes: Vec<rpc_core::RpcHash> = item.parent_hashes
-            .iter()
-            .map(|x| RpcHash::from_str(x))
-            .collect::<Result<Vec<rpc_core::RpcHash>, faster_hex::Error>>()?;
-        Ok(Self { parent_hashes })
+        Ok(Self {
+            parent_hashes: item.parent_hashes
+                .iter()
+                .map(|x| RpcHash::from_str(x))
+                .collect::<Result<Vec<rpc_core::RpcHash>, faster_hex::Error>>()?
+         })
     }
 }
