@@ -5,7 +5,6 @@ use crate::{
 use consensus_core::{
     header::Header,
 };
-use hashes::Hash;
 
 // ----------------------------------------------------------------------------
 // consensus_core to rpc_core
@@ -64,12 +63,5 @@ impl TryFrom<&RpcBlockHeader> for Header {
         header.finalize();
 
         Ok(header)
-    }
-}
-
-impl TryFrom<&RpcBlockLevelParents> for Vec<Hash> {
-    type Error = RpcError;
-    fn try_from(item: &RpcBlockLevelParents) -> RpcResult<Self> {
-        Ok(item.parent_hashes.clone())
     }
 }
