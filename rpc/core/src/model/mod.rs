@@ -3,5 +3,6 @@ pub mod blue_work;
 pub mod hash;
 pub mod header;
 pub mod hex_data;
+pub mod message;
 pub mod subnets;
 pub mod tx;

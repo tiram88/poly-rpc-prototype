@@ -287,24 +287,6 @@ pub struct VirtualSelectedParentChainChangedNotification {
     pub accepted_transaction_ids: Vec<AcceptedTransactionIds>,
 }
 
-/// GetBlockRequest requests information about a specific block
-#[derive(Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct GetBlockRequest {
-    /// The hash of the requested block
-    pub hash: String, // FIXME
-
-    /// Whether to include transaction data in the response
-    pub include_transactions: bool,
-}
-
-#[derive(Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct GetBlockResponse {
-    pub block: RpcBlock,
-    // RpcError error = 1000;
-}
-
 /// GetSubnetworkRequest requests information about a specific subnetwork
 ///
 /// Currently unimplemented

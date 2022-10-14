@@ -22,3 +22,15 @@ pub enum RpcError {
     #[error("Missing required field {0}.{1}")]
     MissingRpcFieldError(String, String),
 }
+
+impl From<String> for RpcError {
+    fn from(value: String) -> Self {
+        RpcError::String(value)
+    }
+}
+
+impl From<&str> for RpcError {
+    fn from(value: &str) -> Self {
+        RpcError::String(value.to_string())
+    }
+}
