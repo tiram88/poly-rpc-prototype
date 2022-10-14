@@ -70,16 +70,11 @@ impl TryFrom<&protowire::GetBlockResponseMessage> for rpc_core::GetBlockResponse
         // } else {
         //     Err(item.error
         //         .as_ref()
-        //         .expect("in absence of a block, an error message is present").message
-        //         .to_string()
+        //         .expect("in absence of a block, an error message is present")
         //         .into())
         // }
         item.block.as_ref().map_or_else(
-            || Err(item.error
-            .as_ref()
-            .expect("in absence of a block, an error message is present").message
-            .to_string()
-            .into()),
+            || Err(item.error.as_ref().expect("in absence of a block, an error message is present").into()),
             |x| rpc_core::RpcBlock::try_from(x))
             .map(|x| rpc_core::GetBlockResponse { block: x }
         )

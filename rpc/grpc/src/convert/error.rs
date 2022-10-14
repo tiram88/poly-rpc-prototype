@@ -11,3 +11,13 @@ impl From<&rpc_core::RpcError> for protowire::RpcError {
         }
     }
 }
+
+// ----------------------------------------------------------------------------
+// protowire to rpc_core
+// ----------------------------------------------------------------------------
+
+impl From<&protowire::RpcError> for rpc_core::RpcError {
+    fn from(item: &protowire::RpcError) -> Self {
+        rpc_core::RpcError::from(item.message.to_string())
+    }
+}
