@@ -33,7 +33,11 @@ impl ClientApi for ClientApiGrpc {
             yield request;
         };
     
+        // FIXME
+        // Cloning the inner RpcClient is not the way
+        // to deal with it's mutability
         let mut inner = self.inner.clone();
+
         let response = inner
             .message_stream(Request::new(outbound))
             .await

@@ -38,6 +38,10 @@ impl Rpc for RpcService {
         let mut stream = request.into_inner();
         let core_service = self.core_service.clone();
 
+        // FIXME
+        // Since all client api requests are single request and response
+        // handle the request outside the stream and let the stream yield 
+        // the unique response.
         let output = async_stream::try_stream! {
             while let Some(request) = stream.next().await {
                 println!("Request is {:?}", request);
