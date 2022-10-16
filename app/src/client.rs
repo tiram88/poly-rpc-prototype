@@ -43,7 +43,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut client = RpcClient::connect("http://[::1]:10000").await?;
 
     println!("*** ONE ROUND-TRIP RPC ***");
-    let response = run_get_block(&mut client, String::from("A"), false).await?;
+    println!("REQUEST Existing hash");
+    let response = run_get_block(&mut client, String::from("8270e63a0295d7257785b9c9b76c9a2efb7fb8d6ac0473a1bff1571c5030e995"), false).await?;
+    println!("RESPONSE = {:#?}", response);
+
+    println!("REQUEST Missing hash");
+    let response = run_get_block(&mut client, String::from("0070e63a0295d7257785b9c9b76c9a2efb7fb8d6ac0473a1bff1571c5030e995"), false).await?;
     println!("RESPONSE = {:#?}", response);
 
     Ok(())

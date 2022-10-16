@@ -25,3 +25,28 @@ pub struct GetBlockResponse {
     // block and error as mutually exclusive
     // RpcError error = 1000;
 }
+
+
+/// NotifyBlockAddedRequest registers this connection for blockAdded notifications.
+///
+/// See: [`BlockAddedNotification`]
+#[derive(Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct NotifyBlockAddedRequest;
+
+#[derive(Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct NotifyBlockAddedResponse {
+    // RpcError error = 1000;
+}
+
+/// BlockAddedNotification is sent whenever a blocks has been added (NOT accepted)
+/// into the DAG.
+///
+/// See: [`NotifyBlockAddedRequest`]
+#[derive(Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct BlockAddedNotification {
+    block: RpcBlock,
+}
+

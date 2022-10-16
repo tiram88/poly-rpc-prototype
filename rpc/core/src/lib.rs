@@ -1,3 +1,5 @@
+pub mod api;
+pub mod rpc_client;
 pub mod convert;
 pub mod errors;
 pub mod model;
