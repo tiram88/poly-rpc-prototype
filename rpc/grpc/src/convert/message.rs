@@ -2,7 +2,7 @@ use std::str::FromStr;
 use rpc_core::{
     RpcHash, RpcError, RpcResult
 };
-use crate::protowire;
+use crate::protowire::{self};
 
 // ----------------------------------------------------------------------------
 // rpc_core to protowire
@@ -78,5 +78,21 @@ impl TryFrom<&protowire::GetBlockResponseMessage> for rpc_core::GetBlockResponse
             |x| rpc_core::RpcBlock::try_from(x))
             .map(|x| rpc_core::GetBlockResponse { block: x }
         )
+    }
+}
+
+impl TryFrom<&protowire::KaspadResponse> for rpc_core::GetBlockResponse {
+    type Error = RpcError;
+    fn try_from(item: &protowire::KaspadResponse) -> RpcResult<Self> {
+        if item.payload.is_some() {
+            let payload = item.payload.clone().unwrap();
+            if let protowire::kaspad_response::Payload::GetBlockResponse(response) = payload {
+                (&response).try_into()
+            } else {
+                Err(RpcError::MissingRpcFieldError("KaspaResponse".to_string(), "Payload".to_string()))
+            }
+        } else {
+            Err(RpcError::MissingRpcFieldError("KaspaResponse".to_string(), "Payload".to_string()))
+        }
     }
 }

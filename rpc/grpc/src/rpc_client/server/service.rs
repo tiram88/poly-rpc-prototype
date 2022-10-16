@@ -5,7 +5,7 @@ use tonic::{
 };
 use rpc_core::{
     api::client::ClientApi as ClientApiT,
-    rpc_client::service::ClientApi,
+    rpc_client::server::service::ClientApi,
 };
 use crate::protowire::{
     rpc_server::Rpc,

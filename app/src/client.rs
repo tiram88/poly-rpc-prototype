@@ -1,54 +1,30 @@
-use rpc_grpc::protowire::{
-    rpc_client::RpcClient,
-    KaspadRequest, kaspad_request,
-    GetBlockRequestMessage,
-    KaspadResponse,
-};
+use std::str::FromStr;
 
-// use std::error::Error;
-// use std::time::Duration;
-
-// use futures::stream;
-// use rand::rngs::ThreadRng;
-// use rand::Rng;
-// use tokio::time;
-use tonic::transport::Channel;
-use tonic::Request;
-
-async fn run_get_block(
-    client: &mut RpcClient<Channel>,
-    hash: String,
-    include_transactions: bool
-) -> Result<Option<KaspadResponse>, tonic::Status> {
-
-    let outbound = async_stream::stream! {
-        let request = KaspadRequest {
-            payload:
-                Some(kaspad_request::Payload::GetBlockRequest(
-                    GetBlockRequestMessage { hash: hash, include_transactions: include_transactions }
-                ))
-            };
-        yield request;
-    };
-
-    let response = client.message_stream(Request::new(outbound)).await?;
-    let mut inbound = response.into_inner();
-
-    let result = inbound.message().await;
-    result
-}
+use rpc_core::{GetBlockRequest, RpcHash};
+use rpc_core::api::client::ClientApi;
+use rpc_grpc::rpc_client::client::ClientApiGrpc;
+use hashes::Hash;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut client = RpcClient::connect("http://[::1]:10000").await?;
+    //let mut client = RpcClient::connect("http://[::1]:10000").await?;
+    let c = ClientApiGrpc::connect("http://[::1]:10000".to_string()).await?;
 
     println!("*** ONE ROUND-TRIP RPC ***");
     println!("REQUEST Existing hash");
-    let response = run_get_block(&mut client, String::from("8270e63a0295d7257785b9c9b76c9a2efb7fb8d6ac0473a1bff1571c5030e995"), false).await?;
+    let request = GetBlockRequest {
+        hash: RpcHash::from_str("8270e63a0295d7257785b9c9b76c9a2efb7fb8d6ac0473a1bff1571c5030e995")?,
+        include_transactions: false
+    };
+    let response = c.get_block(request).await;
     println!("RESPONSE = {:#?}", response);
 
     println!("REQUEST Missing hash");
-    let response = run_get_block(&mut client, String::from("0070e63a0295d7257785b9c9b76c9a2efb7fb8d6ac0473a1bff1571c5030e995"), false).await?;
+    let request = GetBlockRequest {
+        hash: Hash::from_str("0070e63a0295d7257785b9c9b76c9a2efb7fb8d6ac0473a1bff1571c5030e995")?,
+        include_transactions: false
+    };
+    let response = c.get_block(request).await;
     println!("RESPONSE = {:#?}", response);
 
     Ok(())
