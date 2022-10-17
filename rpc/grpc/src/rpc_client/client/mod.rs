@@ -23,14 +23,14 @@ impl ClientApiGrpc {
 #[async_trait]
 impl ClientApi for ClientApiGrpc {
     async fn get_block(&self, req: GetBlockRequest) -> RpcResult<GetBlockResponse> {
+        
         let request: KaspadRequest = (&req).into();
         let outbound = async_stream::stream! {
             yield request;
         };
     
-        // FIXME
-        // Cloning the inner RpcClient is not the way
-        // to deal with it's mutability
+        // Cloning the inner RpcClient is the recommended way to deal with mutability
+        // see https://docs.rs/tonic/latest/tonic/client/index.html
         let mut inner = self.inner.clone();
 
         let response = inner
@@ -43,8 +43,7 @@ impl ClientApi for ClientApiGrpc {
             .message()
             .await
             .map_err(|x| RpcError::String(x.to_string()))?
-            .expect("a respons message is included when request succeeds");
-
+            .ok_or(RpcError::String("missing response".to_string()))?;
 
         (&response).try_into()
     }
