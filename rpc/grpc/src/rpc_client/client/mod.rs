@@ -5,8 +5,7 @@ use rpc_core::{
     api::client::ClientApi, GetBlockRequest, GetBlockResponse, RpcResult, RpcError,
 };
 use crate::protowire::{
-    KaspadRequest, kaspad_request::Payload,
-    GetBlockRequestMessage,
+    KaspadRequest,
     rpc_client::RpcClient
 };
 
@@ -24,12 +23,8 @@ impl ClientApiGrpc {
 #[async_trait]
 impl ClientApi for ClientApiGrpc {
     async fn get_block(&self, req: GetBlockRequest) -> RpcResult<GetBlockResponse> {
-        let request: GetBlockRequestMessage = (&req).into();
+        let request: KaspadRequest = (&req).into();
         let outbound = async_stream::stream! {
-            let request = KaspadRequest {
-                payload:
-                    Some(Payload::GetBlockRequest(request))
-                };
             yield request;
         };
     

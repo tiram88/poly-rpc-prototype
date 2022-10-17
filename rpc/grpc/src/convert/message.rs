@@ -2,7 +2,7 @@ use std::str::FromStr;
 use rpc_core::{
     RpcHash, RpcError, RpcResult
 };
-use crate::protowire::{self};
+use crate::protowire;
 
 // ----------------------------------------------------------------------------
 // rpc_core to protowire
@@ -73,26 +73,14 @@ impl TryFrom<&protowire::GetBlockResponseMessage> for rpc_core::GetBlockResponse
         //         .expect("in absence of a block, an error message is present")
         //         .into())
         // }
-        item.block.as_ref().map_or_else(
-            || Err(item.error.as_ref().expect("in absence of a block, an error message is present").into()),
-            |x| rpc_core::RpcBlock::try_from(x))
+        item.block.as_ref()
+            .map_or_else(
+                //|| Err(item.error.as_ref().expect("in absence of a block, an error message is present").into()),
+                || item.error
+                                .as_ref()
+                                .map_or(Err(RpcError::MissingRpcFieldError("GetBlockResponseMessage".to_string(), "error".to_string())), |x| Err(x.into())),
+                |x| rpc_core::RpcBlock::try_from(x))
             .map(|x| rpc_core::GetBlockResponse { block: x }
         )
-    }
-}
-
-impl TryFrom<&protowire::KaspadResponse> for rpc_core::GetBlockResponse {
-    type Error = RpcError;
-    fn try_from(item: &protowire::KaspadResponse) -> RpcResult<Self> {
-        if item.payload.is_some() {
-            let payload = item.payload.clone().unwrap();
-            if let protowire::kaspad_response::Payload::GetBlockResponse(response) = payload {
-                (&response).try_into()
-            } else {
-                Err(RpcError::MissingRpcFieldError("KaspaResponse".to_string(), "Payload".to_string()))
-            }
-        } else {
-            Err(RpcError::MissingRpcFieldError("KaspaResponse".to_string(), "Payload".to_string()))
-        }
     }
 }
