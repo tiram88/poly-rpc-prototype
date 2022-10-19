@@ -35,6 +35,7 @@ impl Rpc for RpcService {
     ) -> Result<Response<Self::MessageStreamStream>, tonic::Status> {
         println!("MessageStream");
 
+        println!("Remote address: {:?}", request.remote_addr());
         let mut stream = request.into_inner();
 
         // Since all client api calls are single request and single response
