@@ -5,6 +5,8 @@ pub mod kaspad_request_convert {
     use crate::protowire::*;
 
     impl_into_kaspad_request!(rpc_core::GetBlockRequest, GetBlockRequestMessage, GetBlockRequest);
+    impl_into_kaspad_request!(rpc_core::NotifyBlockAddedRequest, NotifyBlockAddedRequestMessage, NotifyBlockAddedRequest);
+    impl_into_kaspad_request!(rpc_core::GetInfoRequest, GetInfoRequestMessage, GetInfoRequest);
 
     macro_rules! impl_into_kaspad_request {
         ($($core_struct:ident)::+, $($protowire_struct:ident)::+, $($variant:ident)::+) => {
@@ -23,6 +25,20 @@ pub mod kaspad_request_convert {
                 fn from(item: &$($core_struct)::+) -> Self {
                     Self {
                         payload: Some(item.into())
+                    }
+                }
+            }
+
+            impl From<$($core_struct)::+> for kaspad_request::Payload {
+                fn from(item: $($core_struct)::+) -> Self {
+                    Self::$($variant)::+((&item).into())
+                }
+            }
+
+            impl From<$($core_struct)::+> for KaspadRequest {
+                fn from(item: $($core_struct)::+) -> Self {
+                    Self {
+                        payload: Some((&item).into())
                     }
                 }
             }
@@ -70,10 +86,12 @@ pub mod kaspad_request_convert {
 }
 
 pub mod kaspad_response_convert {
-    use rpc_core::{RpcError, RpcResult,};
+    use rpc_core::{RpcError, RpcResult};
     use crate::protowire::*;
 
     impl_into_kaspad_response!(rpc_core::GetBlockResponse, GetBlockResponseMessage, GetBlockResponse);
+    impl_into_kaspad_response!(rpc_core::NotifyBlockAddedResponse, NotifyBlockAddedResponseMessage, NotifyBlockAddedResponse);
+    impl_into_kaspad_response!(rpc_core::GetInfoResponse, GetInfoResponseMessage, GetInfoResponse);
 
     macro_rules! impl_into_kaspad_response {
         ($($core_struct:ident)::+, $($protowire_struct:ident)::+, $($variant:ident)::+) => {
@@ -144,4 +162,29 @@ pub mod kaspad_response_convert {
         };
     }
     use impl_into_kaspad_response;
+}
+
+use rpc_core::api::ops::ClientApiOps;
+use crate::protowire::{kaspad_request, kaspad_response};
+
+impl From<&kaspad_request::Payload> for ClientApiOps {
+    fn from(item: &kaspad_request::Payload) -> Self {
+        match item {
+            kaspad_request::Payload::GetCurrentNetworkRequest(_) => ClientApiOps::GetCurrentNetwork,
+            kaspad_request::Payload::NotifyBlockAddedRequest(_) => ClientApiOps::Notify,
+            kaspad_request::Payload::GetBlockRequest(_) => ClientApiOps::GetBlock,
+            kaspad_request::Payload::GetInfoRequest(_) => ClientApiOps::GetInfo,
+        }
+    }
+}
+
+impl From<&kaspad_response::Payload> for ClientApiOps {
+    fn from(item: &kaspad_response::Payload) -> Self {
+        match item {
+            kaspad_response::Payload::GetCurrentNetworkResponse(_) => ClientApiOps::GetCurrentNetwork,
+            kaspad_response::Payload::NotifyBlockAddedResponse(_) => ClientApiOps::Notify,
+            kaspad_response::Payload::GetBlockResponse(_) => ClientApiOps::GetBlock,
+            kaspad_response::Payload::GetInfoResponse(_) => ClientApiOps::GetInfo,
+        }
+    }
 }

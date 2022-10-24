@@ -33,3 +33,4 @@ tokio-stream = "0.1"
 async-stream = "0.2"
 serde_json = "1.0"
 rand.workspace = true
+clap = { version = "4.0", features = ["color", "derive"]}

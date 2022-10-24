@@ -5,15 +5,19 @@ import "rpc.proto";
 
 message KaspadRequest {
   oneof payload {
+    GetCurrentNetworkRequestMessage getCurrentNetworkRequest = 1001;
     NotifyBlockAddedRequestMessage notifyBlockAddedRequest = 1007;
     GetBlockRequestMessage getBlockRequest = 1025;
+    GetInfoRequestMessage getInfoRequest = 1063;
   }
 }
 
 message KaspadResponse {
   oneof payload {
+    GetCurrentNetworkResponseMessage getCurrentNetworkResponse = 1002;
     NotifyBlockAddedResponseMessage notifyBlockAddedResponse = 1008;
     GetBlockResponseMessage getBlockResponse = 1026;
+    GetInfoResponseMessage getInfoResponse = 1064;
   }
 }
 

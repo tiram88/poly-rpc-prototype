@@ -12,7 +12,7 @@ pub use hashers::*;
 
 // TODO: Check if we use hash more as an array of u64 or of bytes and change the default accordingly
 // Tiram change: Add Borsh Traits
-#[derive(PartialEq, Eq, Clone, Copy, Hash, Default, Debug, PartialOrd, Ord, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
+#[derive(PartialEq, Eq, Clone, Copy, Hash, Default, PartialOrd, Ord, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
 pub struct Hash([u8; HASH_SIZE]);
 
 impl Hash {
@@ -60,6 +60,14 @@ impl Hash {
 
 impl Display for Hash {
     #[inline]
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let mut hex = [0u8; HASH_SIZE * 2];
+        faster_hex::hex_encode(&self.0, &mut hex).expect("The output is exactly twice the size of the input");
+        f.write_str(str::from_utf8(&hex).expect("hex is always valid UTF-8"))
+    }
+}
+
+impl Debug for Hash {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let mut hex = [0u8; HASH_SIZE * 2];
         faster_hex::hex_encode(&self.0, &mut hex).expect("The output is exactly twice the size of the input");
