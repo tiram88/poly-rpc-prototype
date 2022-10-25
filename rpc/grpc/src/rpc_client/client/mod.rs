@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rpc_core::api::ops::ClientApiOps;
 use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
 use tokio_stream::wrappers::ReceiverStream;
@@ -9,7 +8,11 @@ use tonic::codec::CompressionEncoding;
 use tonic::transport::Channel;
 use tonic::Streaming;
 use rpc_core::{
-    api::client::ClientApi, GetBlockRequest, GetBlockResponse, RpcResult,
+    api::client::ClientApi,
+    api::ops::ClientApiOps,
+    GetBlockRequest, GetBlockResponse,
+    GetInfoRequest, GetInfoResponse,
+    RpcResult,
 };
 use crate::protowire::GetInfoRequestMessage;
 use crate::protowire::{
@@ -25,7 +28,7 @@ mod resolver;
 mod result;
 
 pub struct ClientApiGrpc {
-    inner: RpcClient<Channel>,
+    _inner: RpcClient<Channel>,
     resolver: Arc<Resolver>,
     //recv_channel: Receiver<KaspadResponse>,
     forwarder_handle: JoinHandle<()>,
@@ -86,7 +89,7 @@ impl ClientApiGrpc {
         resolver.clone().receiver_task(recv_channel);
 
         Ok(Self {
-            inner: client,
+            _inner: client,
             resolver,
             //recv_channel,
             forwarder_handle,
@@ -99,50 +102,25 @@ impl ClientApiGrpc {
         //self.response_handler_handle.abort();
     }
 
-    // pub fn register(&mut self) {
-    //     let mut recv_channel = &self.recv_channel;
-    // }
-
-    // async fn listen(&self) -> Result<(), Error> {
-
-    // }
-
-    // pub async fn handle_response(&self, payload: kaspad_response::Payload) -> Result<(), Error> {
-    //     Ok(())
-    // }
-
 }
 
 #[async_trait]
 impl ClientApi for ClientApiGrpc {
     async fn get_block(&self, request: GetBlockRequest) -> RpcResult<GetBlockResponse> {
         
-        // let request: KaspadRequest = (&req).into();
         let response = self.resolver.clone()
             .call(ClientApiOps::GetBlock, request)
             .await?;
         (&response).try_into()
 
-        
-        // let outbound = async_stream::stream! {
-        //     yield request;
-        // };
-    
-        // // Cloning the inner RpcClient is the recommended way to deal with mutability
-        // // see https://docs.rs/tonic/latest/tonic/client/index.html
-        // let mut inner = self.inner.clone();
+    }
 
-        // let response = inner
-        //     .message_stream(Request::new(outbound))
-        //     .await
-        //     .map_err(|x| RpcError::String(x.to_string()))?;
-        // let mut inbound = response.into_inner();
-    
-        // let response = inbound
-        //     .message()
-        //     .await
-        //     .map_err(|x| RpcError::String(x.to_string()))?
-        //     .ok_or(RpcError::String("missing response".to_string()))?;
+    async fn get_info(&self, request: GetInfoRequest) -> RpcResult<GetInfoResponse> {
+        
+        let response = self.resolver.clone()
+            .call(ClientApiOps::GetInfo, request)
+            .await?;
+        (&response).try_into()
 
     }
 }

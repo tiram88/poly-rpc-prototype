@@ -14,7 +14,7 @@ use crate::protowire::{
     rpc_server::Rpc,
     KaspadRequest, KaspadResponse,
     kaspad_request::Payload,
-    GetBlockResponseMessage, NotifyBlockAddedResponseMessage, 
+    GetBlockResponseMessage, NotifyBlockAddedResponseMessage, GetInfoResponseMessage, 
 };
 
 
@@ -152,7 +152,19 @@ impl Rpc for RpcService {
                             }
                         },
                         
-                        _ => GetBlockResponseMessage::from(rpc_core::RpcError::String("err".to_string())).into()
+                        Some(Payload::GetInfoRequest(request)) => {
+                            let core_request: rpc_core::RpcResult<rpc_core::GetInfoRequest> = (&request).try_into();
+                            match core_request {
+                                Ok(request) => {
+                                    (&(core_service.get_info(request).await)).into()
+                                }
+                                Err(err) => {
+                                    GetInfoResponseMessage::from(err).into()
+                                }
+                            }
+                        },
+                        
+                        _ => GetBlockResponseMessage::from(rpc_core::RpcError::String("Server-side API Not implemented".to_string())).into()
         
                     };
 

@@ -1,8 +1,7 @@
 use std::str::FromStr;
 
-use rpc_core::{GetBlockRequest, RpcHash};
+use rpc_core::{GetBlockRequest, RpcHash, GetInfoRequest};
 use rpc_core::api::client::ClientApi;
-use rpc_grpc::protowire::rpc_client::RpcClient;
 use rpc_grpc::rpc_client::client::ClientApiGrpc;
 use hashes::Hash;
 use clap::Parser;
@@ -40,6 +39,12 @@ async fn main() -> Result<(), Error> {
     let response = c.get_block(request).await;
     println!("RESPONSE = {:#?}", response);
 
+    println!("REQUEST info");
+    let request = GetInfoRequest {};
+    let response = c.get_info(request).await;
+    println!("RESPONSE = {:#?}", response);
+
+
 
     println!("*** GO KASPAD NODE ***");
     let c_public = ClientApiGrpc::connect(args.address).await?;
@@ -74,6 +79,11 @@ async fn main() -> Result<(), Error> {
         include_transactions: false
     };
     let response = c_public.get_block(request).await;
+    println!("RESPONSE = {:#?}", response);
+
+    println!("REQUEST Public node, info");
+    let request = GetInfoRequest {};
+    let response = c_public.get_info(request).await;
     println!("RESPONSE = {:#?}", response);
 
     Ok(())

@@ -14,18 +14,18 @@ use super::{result::Result, errors::Error};
 pub type SenderResponse = tokio::sync::oneshot::Sender<Result<KaspadResponse>>;
 
 struct Pending {
-    timestamp: Instant,
+    _timestamp: Instant,
     op: ClientApiOps,
-    request: KaspadRequest,
+    //request: KaspadRequest,
     sender: SenderResponse,
 }
 
 impl Pending {
-    fn new(op: ClientApiOps, request: KaspadRequest, sender: SenderResponse) -> Self {
+    fn new(op: ClientApiOps, _request: KaspadRequest, sender: SenderResponse) -> Self {
         Self {
-            timestamp: Instant::now(),
+            _timestamp: Instant::now(),
             op,
-            request,
+            //request,
             //callback,
             sender,
         }
@@ -62,13 +62,6 @@ impl Resolver {
                 let pending = Pending::new(
                     op,
                     request.clone(),
-                    // Arc::new(Box::new(move |result| {
-                    //     let response = match result {
-                    //         Ok(data) => Ok(data.to_owned()),
-                    //         Err(e) => Err(e),
-                    //     };
-                    //     //sender.send(response).unwrap();
-                    // })),
                     sender
                 );
 
