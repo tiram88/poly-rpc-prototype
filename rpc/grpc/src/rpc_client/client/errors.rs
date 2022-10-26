@@ -14,6 +14,10 @@ pub enum Error {
     
     #[error("gRPC client error {0}")]
     TonicStatus(#[from] tonic::Status),
+    
+    /// RPC call timeout
+    #[error("RPC request timeout")]
+    Timeout,
 
     #[error("Endpoint connection error: {0}")]
     EndpointConnectionError(#[from] tonic::transport::Error),

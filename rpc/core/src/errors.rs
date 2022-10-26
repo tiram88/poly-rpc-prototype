@@ -7,7 +7,7 @@ pub enum RpcError {
     #[error("Not implemented")]
     NotImplemented,
 
-    #[error("Error: {0}")]
+    #[error("{0}")]
     String(String),
 
     #[error("Integer downsize conversion error {0}")]

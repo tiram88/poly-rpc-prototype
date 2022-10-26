@@ -6,7 +6,7 @@ use crate::protowire::{
 };
 
 
-pub trait Matcher<T> {
+pub(crate) trait Matcher<T> {
     fn is_matching(&self, response: T) -> bool;
 }
 
@@ -16,6 +16,9 @@ impl Matcher<&GetBlockResponseMessage> for GetBlockRequestMessage {
             if let Some(verbose_data) = block.verbose_data.as_ref() {
                 return verbose_data.hash == self.hash;
             }
+        } else if let Some(error) = response.error.as_ref() {
+            // the response error message should contain the requested hash
+            return error.message.contains(self.hash.as_str());
         }
         false
     }

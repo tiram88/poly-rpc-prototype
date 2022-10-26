@@ -1,10 +1,10 @@
 use std::str::FromStr;
-
+use tokio::time::{sleep, Duration};
+use clap::Parser;
 use rpc_core::{GetBlockRequest, RpcHash, GetInfoRequest};
 use rpc_core::api::client::ClientApi;
 use rpc_grpc::rpc_client::client::ClientApiGrpc;
 use hashes::Hash;
-use clap::Parser;
 
 pub type Error = Box<dyn std::error::Error + Send + Sync + 'static>;
 
@@ -20,9 +20,9 @@ struct Args {
 async fn main() -> Result<(), Error> {
     let args = Args::parse();
 
-    let c = ClientApiGrpc::connect("http://[::1]:10000".to_string()).await?;
+    let mut c = ClientApiGrpc::connect("http://[::1]:10000".to_string()).await?;
 
-    println!("*** ONE ROUND-TRIP RPC ***");
+    println!("*** RUST PROTOTYPE ***");
     println!("REQUEST Existing hash");
     let request = GetBlockRequest {
         hash: RpcHash::from_str("8270e63a0295d7257785b9c9b76c9a2efb7fb8d6ac0473a1bff1571c5030e995")?,
@@ -30,6 +30,8 @@ async fn main() -> Result<(), Error> {
     };
     let response = c.get_block(request).await;
     println!("RESPONSE = {:#?}", response);
+
+    sleep(Duration::from_millis(3_000)).await;
 
     println!("REQUEST Missing hash");
     let request = GetBlockRequest {
@@ -46,8 +48,8 @@ async fn main() -> Result<(), Error> {
 
 
 
-    println!("*** GO KASPAD NODE ***");
-    let c_public = ClientApiGrpc::connect(args.address).await?;
+    println!("*** GO KASPA NODE ***");
+    let mut c_public = ClientApiGrpc::connect(args.address).await?;
 
     println!("REQUEST Public node, existing hash");
     let request = GetBlockRequest {
@@ -85,6 +87,16 @@ async fn main() -> Result<(), Error> {
     let request = GetInfoRequest {};
     let response = c_public.get_info(request).await;
     println!("RESPONSE = {:#?}", response);
+
+    sleep(Duration::from_millis(2000)).await;
+
+    // Closing connections
+    println!("Shutting down RUST PROTOTYPE connected client");
+    c.shutdown().await?;
+    println!("Shutting down GO KASPA NODE connected client");
+    c_public.shutdown().await?;
+
+    sleep(Duration::from_millis(2000)).await;
 
     Ok(())
 }

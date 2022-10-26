@@ -25,7 +25,7 @@ impl client::ClientApi for ClientApi {
 
         // This is a test to simulate a consensus error
         if req.hash.as_bytes()[0] == 0 {
-            return Err(RpcError::String("Block not found".to_string()));
+            return Err(RpcError::String(format!("Block {0} not found", req.hash)));
         }
 
         // This is a test to simulate a respons containing a block
@@ -38,8 +38,8 @@ impl client::ClientApi for ClientApi {
             p2p_id: "test".to_string(),
             mempool_size: 1,
             server_version: "0.12.8".to_string(),
-            is_utxo_indexed: true,
-            is_synced: true,
+            is_utxo_indexed: false,
+            is_synced: false,
         })
     }
 }
