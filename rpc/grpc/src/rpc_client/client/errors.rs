@@ -9,9 +9,6 @@ pub enum Error {
     #[error("Error: {0}")]
     String(String),
 
-    // #[error("{0}")]
-    // StdError(#[from] BoxedStdError),
-    
     #[error("gRPC client error {0}")]
     TonicStatus(#[from] tonic::Status),
     

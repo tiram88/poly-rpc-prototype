@@ -23,9 +23,7 @@ impl ClientApiGrpc {
     pub async fn connect(address: String) -> Result<ClientApiGrpc>
     {
         let inner = Resolver::connect(address).await?;
-        Ok(Self {
-            inner
-        })
+        Ok(Self { inner })
     }
 
     pub async fn shutdown(&mut self) -> Result<()> {
@@ -37,20 +35,10 @@ impl ClientApiGrpc {
 #[async_trait]
 impl ClientApi for ClientApiGrpc {
     async fn get_block(&self, request: GetBlockRequest) -> RpcResult<GetBlockResponse> {
-        
-        let response = self.inner.clone()
-            .call(ClientApiOps::GetBlock, request)
-            .await?;
-        (&response).try_into()
-
+        self.inner.clone().call(ClientApiOps::GetBlock, request).await?.as_ref().try_into()
     }
 
     async fn get_info(&self, request: GetInfoRequest) -> RpcResult<GetInfoResponse> {
-        
-        let response = self.inner.clone()
-            .call(ClientApiOps::GetInfo, request)
-            .await?;
-        (&response).try_into()
-
+        self.inner.clone().call(ClientApiOps::GetInfo, request).await?.as_ref().try_into()
     }
 }

@@ -25,8 +25,6 @@ use super::{result::Result, errors::Error};
 use matcher::*;
 mod matcher;
 
-// mod matcher;
-//pub type RpcResponseFn = Arc<Box<(dyn Fn(Result<KaspadResponse>) + Sync + Send)>>;
 pub type SenderResponse = tokio::sync::oneshot::Sender<Result<KaspadResponse>>;
 
 struct Pending {
@@ -54,14 +52,18 @@ impl Pending {
 
 /// A struct to handle messages flowing to (requestes) and from (responses) a protowire server.
 /// Incoming responses are associated to pending requests based on their matching operation
-/// type and, for some operations like [`ClientApiOps::GetBlock`], on their properties
+/// type and, for some operations like [`ClientApiOps::GetBlock`], on their properties.
 /// 
 /// Data flow:
-/// KaspadRequest -> send_channel -> recv -> stream -> send -> recv_channel -> KaspadResponse
+/// ```
+/// // KaspadRequest -> send_channel -> recv -> stream -> send -> recv_channel -> KaspadResponse
+/// ```
 ///
 /// Execution flow:
-// | call --------------------------------------------------------------------------------->|
-///                                | sender_task ----------->| receiver_task -------------->|
+/// ```
+/// // | call --------------------------------------------------------------------------------->|
+/// //                                 | sender_task ----------->| receiver_task -------------->|
+/// ```
 pub struct Resolver {
     _inner: RpcClient<Channel>,
     send_channel: Sender<KaspadRequest>,
