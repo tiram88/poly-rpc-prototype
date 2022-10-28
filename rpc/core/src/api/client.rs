@@ -139,10 +139,10 @@ pub trait ClientApi : Sync + Send {
     //     req: UnbanRequest
     // ) -> RpcResult<UnbanResponse>;
 
-    // async fn get_info(
-    //     &self,
-    //     req: GetInfoRequest
-    // ) -> RpcResult<GetInfoResponse>;
+    async fn get_info(
+        &self,
+        req: GetInfoRequest
+    ) -> RpcResult<GetInfoResponse>;
 
     // async fn estimate_network_hashes_per_second(
     //     &self,

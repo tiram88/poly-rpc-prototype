@@ -30,7 +30,7 @@ futures-util = { version = "0.3", default-features = false, features = ["alloc"]
 bincode = { version = "1", default-features = false }
 tokio = { version = "1", features = ["sync"] }
 criterion = { version = "0.4", default-features = false }
-tonic = { version = "0.8" }
+tonic = { version = "0.8", features = ["gzip"] }
 prost = { version = "0.11" }
 derive_more = { version = "0.99" }
 thiserror = "1"

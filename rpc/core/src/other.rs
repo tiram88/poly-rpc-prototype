@@ -676,23 +676,6 @@ pub struct UnbanResponse {
     // RpcError error = 1000;
 }
 
-/// GetInfoRequest returns info about the node.
-#[derive(Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct GetInfoRequest {
-}
-
-#[derive(Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct GetInfoResponse {
-    pub p2p_id: String,
-    pub mempool_size: u64,
-    pub server_version: String, // FIXME ?
-    pub is_utxo_indexed: bool,
-    pub is_synced: bool,
-    // RpcError error = 1000;
-}
-
 #[derive(Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct EstimateNetworkHashesPerSecondRequest {

@@ -1,50 +1,44 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
-use tonic::Request;
-use tonic::transport::{Channel, Error};
 use rpc_core::{
-    api::client::ClientApi, GetBlockRequest, GetBlockResponse, RpcResult, RpcError,
+    api::client::ClientApi,
+    api::ops::ClientApiOps,
+    GetBlockRequest, GetBlockResponse,
+    GetInfoRequest, GetInfoResponse,
+    RpcResult,
 };
-use crate::protowire::{
-    KaspadRequest,
-    rpc_client::RpcClient
-};
+use self::resolver::Resolver;
+use self::result::Result;
+
+mod errors;
+mod resolver;
+mod result;
 
 pub struct ClientApiGrpc {
-    inner: RpcClient<Channel>,
+    inner: Arc<Resolver>,
 }
 
 impl ClientApiGrpc {
-    pub async fn connect(address: String) -> Result<ClientApiGrpc, Error> {
-        let client = RpcClient::connect(address.clone()).await?;
-        Ok(ClientApiGrpc { inner: client })
+    pub async fn connect(address: String) -> Result<ClientApiGrpc>
+    {
+        let inner = Resolver::connect(address).await?;
+        Ok(Self { inner })
+    }
+
+    pub async fn shutdown(&mut self) -> Result<()> {
+        self.inner.clone().shutdown().await?;
+        Ok(())
     }
 }
 
 #[async_trait]
 impl ClientApi for ClientApiGrpc {
-    async fn get_block(&self, req: GetBlockRequest) -> RpcResult<GetBlockResponse> {
-        
-        let request: KaspadRequest = (&req).into();
-        let outbound = async_stream::stream! {
-            yield request;
-        };
-    
-        // Cloning the inner RpcClient is the recommended way to deal with mutability
-        // see https://docs.rs/tonic/latest/tonic/client/index.html
-        let mut inner = self.inner.clone();
+    async fn get_block(&self, request: GetBlockRequest) -> RpcResult<GetBlockResponse> {
+        self.inner.clone().call(ClientApiOps::GetBlock, request).await?.as_ref().try_into()
+    }
 
-        let response = inner
-            .message_stream(Request::new(outbound))
-            .await
-            .map_err(|x| RpcError::String(x.to_string()))?;
-        let mut inbound = response.into_inner();
-    
-        let response = inbound
-            .message()
-            .await
-            .map_err(|x| RpcError::String(x.to_string()))?
-            .ok_or(RpcError::String("missing response".to_string()))?;
-
-        (&response).try_into()
+    async fn get_info(&self, request: GetInfoRequest) -> RpcResult<GetInfoResponse> {
+        self.inner.clone().call(ClientApiOps::GetInfo, request).await?.as_ref().try_into()
     }
 }

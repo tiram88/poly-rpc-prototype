@@ -25,11 +25,22 @@ impl client::ClientApi for ClientApi {
 
         // This is a test to simulate a consensus error
         if req.hash.as_bytes()[0] == 0 {
-            return Err(RpcError::String("Block not found".to_string()));
+            return Err(RpcError::String(format!("Block {0} not found", req.hash)));
         }
 
         // This is a test to simulate a respons containing a block
         Ok(GetBlockResponse { block: create_dummy_rpc_block() })
+    }
+
+    async fn get_info(&self, _req: GetInfoRequest) -> RpcResult<GetInfoResponse> {
+        // Info shoulg be queried from consensus
+        Ok(GetInfoResponse{
+            p2p_id: "test".to_string(),
+            mempool_size: 1,
+            server_version: "0.12.8".to_string(),
+            is_utxo_indexed: false,
+            is_synced: false,
+        })
     }
 }
 
