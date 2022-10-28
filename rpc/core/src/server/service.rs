@@ -4,23 +4,21 @@ use std::{time::{SystemTime, UNIX_EPOCH}, str::FromStr, vec, sync::Arc};
 use async_trait::async_trait;
 use hashes::Hash;
 use crate::model::*;
-use crate::model::message::*;
-// use crate::notifications::*;
 use crate::errors::*;
 use crate::result::*;
-use crate::api::client;
+use crate::api::rpc;
 
 #[derive(Debug)]
-pub struct ClientApi{}
+pub struct RpcApi{}
 
-impl ClientApi {
+impl RpcApi {
     pub fn new() -> Arc<Self> {
         Arc::new(Self {})
     }
 }
 
 #[async_trait]
-impl client::ClientApi for ClientApi {
+impl rpc::RpcApi for RpcApi {
     async fn get_block(&self, req: GetBlockRequest) -> RpcResult<GetBlockResponse> {
 
         // This is a test to simulate a consensus error

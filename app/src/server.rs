@@ -1,4 +1,4 @@
-use rpc_grpc::rpc_client::server;
+use rpc_grpc::server;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

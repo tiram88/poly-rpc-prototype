@@ -7,8 +7,8 @@ use tonic::{
     Request, Response,
 };
 use rpc_core::{
-    api::client::ClientApi as ClientApiT,
-    rpc_client::server::service::ClientApi,
+    api::rpc::RpcApi as RpcApiT,
+    server::service::RpcApi,
     RpcResult,
 };
 use crate::protowire::{
@@ -70,12 +70,12 @@ impl GrpcConnectionManager {
 }
 
 pub struct RpcService {
-    pub core_service: Arc<ClientApi>,
+    pub core_service: Arc<RpcApi>,
     connection_manager: Arc<RwLock<GrpcConnectionManager>>,
 }
 
 impl RpcService {
-    pub fn new(core_service: Arc<ClientApi>, connection_manager: Arc<RwLock<GrpcConnectionManager>>) -> Self {
+    pub fn new(core_service: Arc<RpcApi>, connection_manager: Arc<RwLock<GrpcConnectionManager>>) -> Self {
         Self {
             core_service,
             connection_manager,

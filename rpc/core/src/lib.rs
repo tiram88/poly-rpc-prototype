@@ -1,9 +1,9 @@
 pub mod api;
-pub mod rpc_client;
 pub mod convert;
 pub mod errors;
 pub mod model;
 pub mod result;
+pub mod server;
 pub mod stubs;
 
 pub mod prelude {

@@ -10,7 +10,7 @@ use crate::model::*;
 use crate::result::*;
 
 #[async_trait]
-pub trait ClientApi : Sync + Send {
+pub trait RpcApi : Sync + Send {
 
     // async fn ping(
     //     &self,

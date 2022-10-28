@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use rpc_core::{
-    api::client::ClientApi,
+    api::rpc::RpcApi,
     api::ops::ClientApiOps,
     GetBlockRequest, GetBlockResponse,
     GetInfoRequest, GetInfoResponse,
@@ -15,12 +15,12 @@ mod errors;
 mod resolver;
 mod result;
 
-pub struct ClientApiGrpc {
+pub struct RpcApiGrpc {
     inner: Arc<Resolver>,
 }
 
-impl ClientApiGrpc {
-    pub async fn connect(address: String) -> Result<ClientApiGrpc>
+impl RpcApiGrpc {
+    pub async fn connect(address: String) -> Result<RpcApiGrpc>
     {
         let inner = Resolver::connect(address).await?;
         Ok(Self { inner })
@@ -33,7 +33,7 @@ impl ClientApiGrpc {
 }
 
 #[async_trait]
-impl ClientApi for ClientApiGrpc {
+impl RpcApi for RpcApiGrpc {
     async fn get_block(&self, request: GetBlockRequest) -> RpcResult<GetBlockResponse> {
         self.inner.clone().call(ClientApiOps::GetBlock, request).await?.as_ref().try_into()
     }
