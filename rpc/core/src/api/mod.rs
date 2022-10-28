@@ -1,4 +1,3 @@
-pub mod client;
+pub mod rpc;
 pub mod notifications;
 pub mod ops;
-pub mod p2p;

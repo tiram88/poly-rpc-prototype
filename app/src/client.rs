@@ -2,8 +2,8 @@ use std::str::FromStr;
 use tokio::time::{sleep, Duration};
 use clap::Parser;
 use rpc_core::{GetBlockRequest, RpcHash, GetInfoRequest};
-use rpc_core::api::client::ClientApi;
-use rpc_grpc::rpc_client::client::ClientApiGrpc;
+use rpc_core::api::rpc::RpcApi;
+use rpc_grpc::client::RpcApiGrpc;
 use hashes::Hash;
 
 pub type Error = Box<dyn std::error::Error + Send + Sync + 'static>;
@@ -20,7 +20,7 @@ struct Args {
 async fn main() -> Result<(), Error> {
     let args = Args::parse();
 
-    let mut c = ClientApiGrpc::connect("http://[::1]:10000".to_string()).await?;
+    let mut c = RpcApiGrpc::connect("http://[::1]:10000".to_string()).await?;
 
     println!("*** RUST PROTOTYPE ***");
     println!("REQUEST Existing hash");
@@ -49,7 +49,7 @@ async fn main() -> Result<(), Error> {
 
 
     println!("*** GO KASPA NODE ***");
-    let mut c_public = ClientApiGrpc::connect(args.address).await?;
+    let mut c_public = RpcApiGrpc::connect(args.address).await?;
 
     // println!("REQUEST Public node, existing hash");
     // let request = GetBlockRequest {
