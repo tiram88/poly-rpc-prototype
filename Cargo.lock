@@ -1418,6 +1418,7 @@ dependencies = [
  "async-trait",
  "faster-hex",
  "futures",
+ "h2",
  "prost",
  "rpc-core",
  "thiserror",

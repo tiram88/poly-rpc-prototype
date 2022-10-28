@@ -51,42 +51,42 @@ async fn main() -> Result<(), Error> {
     println!("*** GO KASPA NODE ***");
     let mut c_public = ClientApiGrpc::connect(args.address).await?;
 
-    println!("REQUEST Public node, existing hash");
-    let request = GetBlockRequest {
-        hash: Hash::from_str("49beb748fd67dd354de4077aecdbba47f05bedb9dc069870c1682e6043df3abf")?,
-        include_transactions: false
-    };
-    let response = c_public.get_block(request).await;
-    println!("RESPONSE = {:#?}", response);
+    // println!("REQUEST Public node, existing hash");
+    // let request = GetBlockRequest {
+    //     hash: Hash::from_str("49beb748fd67dd354de4077aecdbba47f05bedb9dc069870c1682e6043df3abf")?,
+    //     include_transactions: false
+    // };
+    // let response = c_public.get_block(request).await;
+    // println!("RESPONSE = {:#?}", response);
 
-    println!("REQUEST Public node, existing hash");
-    let request = GetBlockRequest {
-        hash: Hash::from_str("733dcea265ef401e8eb0fda5429a5d769377608575022e8173f1312f91fc0e98")?,
-        include_transactions: false
-    };
-    let response = c_public.get_block(request).await;
-    println!("RESPONSE = {:#?}", response);
+    // println!("REQUEST Public node, existing hash");
+    // let request = GetBlockRequest {
+    //     hash: Hash::from_str("733dcea265ef401e8eb0fda5429a5d769377608575022e8173f1312f91fc0e98")?,
+    //     include_transactions: false
+    // };
+    // let response = c_public.get_block(request).await;
+    // println!("RESPONSE = {:#?}", response);
 
-    println!("REQUEST Public node, existing hash");
-    let request = GetBlockRequest {
-        hash: Hash::from_str("d1c27dfcce46e60df4494e02bef758ad818ad2161391f29f5be129a49b3ff20b")?,
-        include_transactions: false
-    };
-    let response = c_public.get_block(request).await;
-    println!("RESPONSE = {:#?}", response);
+    // println!("REQUEST Public node, existing hash");
+    // let request = GetBlockRequest {
+    //     hash: Hash::from_str("d1c27dfcce46e60df4494e02bef758ad818ad2161391f29f5be129a49b3ff20b")?,
+    //     include_transactions: false
+    // };
+    // let response = c_public.get_block(request).await;
+    // println!("RESPONSE = {:#?}", response);
 
-    println!("REQUEST Public node, non-existing hash");
-    let request = GetBlockRequest {
-        hash: Hash::from_str("0000000000000000000000000000000000000000000000000000000000000000")?,
-        include_transactions: false
-    };
-    let response = c_public.get_block(request).await;
-    println!("RESPONSE = {:#?}", response);
+    // println!("REQUEST Public node, non-existing hash");
+    // let request = GetBlockRequest {
+    //     hash: Hash::from_str("0000000000000000000000000000000000000000000000000000000000000000")?,
+    //     include_transactions: false
+    // };
+    // let response = c_public.get_block(request).await;
+    // println!("RESPONSE = {:#?}", response);
 
-    println!("REQUEST Public node, info");
-    let request = GetInfoRequest {};
-    let response = c_public.get_info(request).await;
-    println!("RESPONSE = {:#?}", response);
+    // println!("REQUEST Public node, info");
+    // let request = GetInfoRequest {};
+    // let response = c_public.get_info(request).await;
+    // println!("RESPONSE = {:#?}", response);
 
     sleep(Duration::from_millis(2000)).await;
 
