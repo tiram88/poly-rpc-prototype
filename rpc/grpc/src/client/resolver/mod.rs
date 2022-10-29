@@ -12,7 +12,7 @@ use tokio::{sync::{mpsc::{self, Sender, Receiver}, oneshot}};
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{codec::CompressionEncoding, transport::{Endpoint, Channel}};
 use tonic::Streaming;
-use rpc_core::{api::ops::ClientApiOps};
+use rpc_core::{api::ops::RpcApiOps};
 use crate::protowire::{
     KaspadRequest, KaspadResponse, GetInfoRequestMessage, rpc_client::RpcClient,
 };
@@ -29,13 +29,13 @@ pub type SenderResponse = tokio::sync::oneshot::Sender<Result<KaspadResponse>>;
 
 struct Pending {
     timestamp: Instant,
-    op: ClientApiOps,
+    op: RpcApiOps,
     request: KaspadRequest,
     sender: SenderResponse,
 }
 
 impl Pending {
-    fn new(op: ClientApiOps, request: KaspadRequest, sender: SenderResponse) -> Self {
+    fn new(op: RpcApiOps, request: KaspadRequest, sender: SenderResponse) -> Self {
         Self {
             timestamp: Instant::now(),
             op,
@@ -44,7 +44,7 @@ impl Pending {
         }
     }
 
-    fn is_matching(&self, response: &KaspadResponse, response_op: ClientApiOps) -> bool {
+    fn is_matching(&self, response: &KaspadResponse, response_op: RpcApiOps) -> bool {
         self.op == response_op && self.request.is_matching(response)
     }
 }
@@ -136,7 +136,7 @@ impl Resolver {
         Ok(resolver)
     }
 
-    pub(crate) async fn call(&self, op: ClientApiOps, request: impl Into<KaspadRequest>) -> Result<KaspadResponse> {
+    pub(crate) async fn call(&self, op: RpcApiOps, request: impl Into<KaspadRequest>) -> Result<KaspadResponse> {
         let request: KaspadRequest = request.into();
         println!("resolver call: {:?}", request);
         if request.payload.is_some() {
@@ -294,7 +294,7 @@ impl Resolver {
     fn handle_response(&self, response: KaspadResponse) {
         println!("resolver handle_response: {:?}", response);
         if response.payload.is_some() {
-            let response_op: ClientApiOps = response.payload.as_ref().unwrap().into();
+            let response_op: RpcApiOps = response.payload.as_ref().unwrap().into();
             let mut pending_calls = self.pending_calls.lock().unwrap();
             let mut pending: Option<Pending> = None;
             if pending_calls.front().is_some() {

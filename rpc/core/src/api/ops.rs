@@ -1,6 +1,6 @@
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[repr(u32)]
-pub enum ClientApiOps {
+pub enum RpcApiOps {
     Ping = 0,
     GetCurrentNetwork,
     SubmitBlock,
@@ -34,7 +34,7 @@ pub enum ClientApiOps {
     Notify,
 }
 
-impl Into<u32> for ClientApiOps {
+impl Into<u32> for RpcApiOps {
     fn into(self) -> u32 {
         self as u32
     }

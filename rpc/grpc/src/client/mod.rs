@@ -3,7 +3,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use rpc_core::{
     api::rpc::RpcApi,
-    api::ops::ClientApiOps,
+    api::ops::RpcApiOps,
     GetBlockRequest, GetBlockResponse,
     GetInfoRequest, GetInfoResponse,
     RpcResult,
@@ -35,10 +35,10 @@ impl RpcApiGrpc {
 #[async_trait]
 impl RpcApi for RpcApiGrpc {
     async fn get_block(&self, request: GetBlockRequest) -> RpcResult<GetBlockResponse> {
-        self.inner.clone().call(ClientApiOps::GetBlock, request).await?.as_ref().try_into()
+        self.inner.clone().call(RpcApiOps::GetBlock, request).await?.as_ref().try_into()
     }
 
     async fn get_info(&self, request: GetInfoRequest) -> RpcResult<GetInfoResponse> {
-        self.inner.clone().call(ClientApiOps::GetInfo, request).await?.as_ref().try_into()
+        self.inner.clone().call(RpcApiOps::GetInfo, request).await?.as_ref().try_into()
     }
 }

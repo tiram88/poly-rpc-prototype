@@ -1,27 +1,27 @@
-use rpc_core::api::ops::ClientApiOps;
+use rpc_core::api::ops::RpcApiOps;
 use crate::protowire::{
     kaspad_request, kaspad_response,
     KaspadResponse, KaspadRequest
 };
 
-impl From<&kaspad_request::Payload> for ClientApiOps {
+impl From<&kaspad_request::Payload> for RpcApiOps {
     fn from(item: &kaspad_request::Payload) -> Self {
         match item {
-            kaspad_request::Payload::GetCurrentNetworkRequest(_) => ClientApiOps::GetCurrentNetwork,
-            kaspad_request::Payload::NotifyBlockAddedRequest(_) => ClientApiOps::Notify,
-            kaspad_request::Payload::GetBlockRequest(_) => ClientApiOps::GetBlock,
-            kaspad_request::Payload::GetInfoRequest(_) => ClientApiOps::GetInfo,
+            kaspad_request::Payload::GetCurrentNetworkRequest(_) => RpcApiOps::GetCurrentNetwork,
+            kaspad_request::Payload::NotifyBlockAddedRequest(_) => RpcApiOps::Notify,
+            kaspad_request::Payload::GetBlockRequest(_) => RpcApiOps::GetBlock,
+            kaspad_request::Payload::GetInfoRequest(_) => RpcApiOps::GetInfo,
         }
     }
 }
 
-impl From<&kaspad_response::Payload> for ClientApiOps {
+impl From<&kaspad_response::Payload> for RpcApiOps {
     fn from(item: &kaspad_response::Payload) -> Self {
         match item {
-            kaspad_response::Payload::GetCurrentNetworkResponse(_) => ClientApiOps::GetCurrentNetwork,
-            kaspad_response::Payload::NotifyBlockAddedResponse(_) => ClientApiOps::Notify,
-            kaspad_response::Payload::GetBlockResponse(_) => ClientApiOps::GetBlock,
-            kaspad_response::Payload::GetInfoResponse(_) => ClientApiOps::GetInfo,
+            kaspad_response::Payload::GetCurrentNetworkResponse(_) => RpcApiOps::GetCurrentNetwork,
+            kaspad_response::Payload::NotifyBlockAddedResponse(_) => RpcApiOps::Notify,
+            kaspad_response::Payload::GetBlockResponse(_) => RpcApiOps::GetBlock,
+            kaspad_response::Payload::GetInfoResponse(_) => RpcApiOps::GetInfo,
         }
     }
 }

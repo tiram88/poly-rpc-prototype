@@ -1,8 +1,8 @@
 //! The client API
 //!
-//! Client = External RPC Service
+//! Rpc = External RPC Service
 //! All data provided by the RCP server can be trusted by the client
-//! NO data submitted by the client to the server can be trusted
+//! No data submitted by the client to the server can be trusted
 
 use async_trait::async_trait;
 use crate::model::*;
