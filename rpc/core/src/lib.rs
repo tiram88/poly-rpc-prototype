@@ -2,6 +2,7 @@ pub mod api;
 pub mod convert;
 pub mod errors;
 pub mod model;
+pub mod notify;
 pub mod result;
 pub mod server;
 pub mod stubs;
@@ -16,6 +17,7 @@ pub mod prelude {
     pub use super::model::subnets::*;
     pub use super::model::tx::*;
     pub use super::result::*;
+    pub use super::api::notifications::*;
 }
 
 pub use model::block::*;
@@ -28,4 +30,5 @@ pub use model::subnets::*;
 pub use model::tx::*;
 pub use errors::*;
 pub use result::*;
+pub use api::notifications::*;
 pub use convert::*;
