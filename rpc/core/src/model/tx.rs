@@ -9,7 +9,7 @@ use crate::prelude::{
     RpcSubnetworkId, RpcHash, RpcHexData,
 };
 
-#[derive(Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct RpcTransaction  {
     pub version: u32,
@@ -22,7 +22,7 @@ pub struct RpcTransaction  {
     pub verbose_data: RpcTransactionVerboseData
 }
 
-#[derive(Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct RpcTransactionInput  {
     pub previous_outpoint: RpcOutpoint,
@@ -32,7 +32,7 @@ pub struct RpcTransactionInput  {
     pub verbose_data: RpcTransactionInputVerboseData,
 }
 
-#[derive(Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct RpcTransactionOutput  {
     pub amount: u64,
@@ -40,14 +40,14 @@ pub struct RpcTransactionOutput  {
     pub verbose_data: RpcTransactionOutputVerboseData
 }
 
-#[derive(Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct RpcOutpoint  {
     pub transaction_id : RpcTransactionId,
     pub index: u32,
 }
 
-#[derive(Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct RpcUtxoEntry  {
     pub amount: u64,
@@ -56,14 +56,14 @@ pub struct RpcUtxoEntry  {
     pub is_coinbase: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct RpcScriptPublicKey  {
     pub script_public_key: RpcHexData,
     pub version : u16,
 }
 
-#[derive(Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct RpcTransactionVerboseData {
     pub transaction_id: RpcTransactionId,
@@ -73,19 +73,19 @@ pub struct RpcTransactionVerboseData {
     pub block_time: u64,
 }
 
-#[derive(Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct RpcTransactionInputVerboseData {
 }
 
-#[derive(Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct RpcTransactionOutputVerboseData {
     pub script_public_key_type: RpcScriptClass,
     pub script_public_key_address: String, // FIXME ? (we might keep a string here)
 }
 
-// #[derive(Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
+// #[derive(Clone, Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
 // #[serde(rename_all = "camelCase")]
 // pub struct RpcAddress {
 //     pub prefix: u32,

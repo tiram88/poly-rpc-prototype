@@ -1,13 +1,16 @@
+use std::fmt::Debug;
 use std::sync::Arc;
 
 use ahash::AHashMap;
 use async_std::channel::unbounded;
 
+use crate::stubs::RpcUtxoAddress;
 use crate::{NotificationReceiver, RpcHexData, Notification, NotificationSender};
 use super::events::{EventArray, EventType};
 use super::channel::NotificationChannel;
+use super::result::Result;
 
-// TODO: consider use of a newtype instead
+// TODO: consider the use of a newtype instead
 pub type ListenerID = u64;
 
 #[derive(Debug)]
@@ -15,7 +18,7 @@ pub(crate) struct Listener {
     id: u64,
     pub channel: NotificationChannel,
     pub active_event: EventArray<bool>,
-    pub utxo_addresses: Vec<RpcHexData>,             // FIXME: We want an explicit type here, ie. Vec<RpcUtxoAddress>
+    pub utxo_addresses: Vec<RpcUtxoAddress>,
 }
 
 impl Listener {
@@ -33,16 +36,23 @@ impl Listener {
         self.id
     }
 
-    pub(crate) fn receives(&self, event: EventType) -> bool {
+    /// Has registered for [`EventType`] notifications?
+    pub(crate) fn has(&self, event: EventType) -> bool {
         self.active_event[event]
     }
 
-    pub(crate) fn toggle_event(&mut self, event: EventType, active: bool) -> bool {
-        if self.active_event[event.clone()] != active {
+    /// Toggle registration for [`EventType`] notifications.
+    /// Return true if a change occured in the registration state.
+    pub(crate) fn toggle(&mut self, event: EventType, active: bool) -> bool {
+        if self.active_event[event] != active {
             self.active_event[event] = active;
             return true;
         }
         false
+    }
+
+    pub(crate) fn is_closed(&self) -> bool {
+        self.channel.is_closed()
     }
 
 }
@@ -63,28 +73,79 @@ impl From<&Listener> for ListenerReceiverSide {
     }
 }
 
-/// Contains the sender side of a listener
 #[derive(Debug)]
+/// Contains the sender side of a listener
 pub(crate) struct ListenerSenderSide {
-    pub send_channel: NotificationSender,
-    pub utxos_addresses: AHashMap<RpcHexData, ()>,
+    send_channel: NotificationSender,
+    filter: Box<dyn Filter + Send + Sync>,
 }
 
-impl From<&Listener> for ListenerSenderSide {
-    fn from(item: &Listener) -> Self {
-        Self {
-            send_channel: item.channel.sender(),
-            utxos_addresses: item.utxo_addresses.iter().map(|x| (x.clone(), ())).collect(),
+impl ListenerSenderSide {
+
+    pub(crate) fn new(listener: &Listener, with_filter: bool, event: EventType) -> Self {
+        match event {
+            EventType::UtxosChanged if with_filter => {
+                Self {
+                    send_channel: listener.channel.sender(),
+                    filter: Box::new(FilterUtxoAddress{
+                        utxos_addresses: listener.utxo_addresses.iter().map(|x| (x.clone(), ())).collect()
+                    }),
+                }
+            },
+            _ => {
+                Self {
+                    send_channel: listener.channel.sender(),
+                    filter: Box::new(Unfiltered{}),
+                }
+            },
         }
     }
+
+    /// Try to send a notification.
+    /// If the notification does not meet requirements, returns Ok(false),
+    /// otherwise returns Ok(true).
+    pub(crate) fn try_send(&self, notification: Arc<Notification>) -> Result<bool> {
+        if self.filter.filter(notification.clone()) {
+            match self.send_channel.try_send(notification) {
+                Ok(_) => { return Ok(true); },
+                Err(err) => { return Err(err.into()); },
+            }
+        }
+        Ok(false)
+    }
+
+    pub(crate) fn is_closed(&self) -> bool {
+        self.send_channel.is_closed()
+    }
+
 }
 
-impl From<&mut Listener> for ListenerSenderSide {
-    fn from(item: &mut Listener) -> Self {
-        Self {
-            send_channel: item.channel.sender(),
-            utxos_addresses: item.utxo_addresses.iter().map(|x| (x.clone(), ())).collect(),
-        }
+trait InnerFilter {
+    fn filter(&self, notification: Arc<Notification>) -> bool;
+}
+
+trait Filter: InnerFilter + Debug {}
+
+#[derive(Clone, Debug)]
+struct Unfiltered;
+impl InnerFilter for Unfiltered {
+    fn filter(&self, _: Arc<Notification>) -> bool {
+        true
     }
 }
+impl Filter for Unfiltered {}
 
+#[derive(Clone, Debug)]
+struct FilterUtxoAddress {
+    utxos_addresses: AHashMap<RpcHexData, ()>,
+}
+
+impl InnerFilter for FilterUtxoAddress {
+    fn filter(&self, notification: Arc<Notification>) -> bool {
+        if let Notification::UtxosChanged(ref notification) = *notification {
+            return self.utxos_addresses.contains_key(&notification.utxo_address);
+        }
+        false
+    }
+}
+impl Filter for FilterUtxoAddress {}

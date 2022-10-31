@@ -35,3 +35,4 @@ prost = { version = "0.11" }
 derive_more = { version = "0.99" }
 thiserror = "1"
 borsh = "0.9.3"
+triggered = "0.1"

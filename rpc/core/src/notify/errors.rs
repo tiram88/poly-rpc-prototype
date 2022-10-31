@@ -30,13 +30,19 @@ impl From<BoxedStdError> for Error {
 }
 
 impl<T> From<async_std::channel::SendError<T>> for Error {
-    fn from(item: async_std::channel::SendError<T>) -> Self {
+    fn from(_: async_std::channel::SendError<T>) -> Self {
+        Error::ChannelSendError
+    }
+}
+
+impl<T> From<async_std::channel::TrySendError<T>> for Error {
+    fn from(_: async_std::channel::TrySendError<T>) -> Self {
         Error::ChannelSendError
     }
 }
 
 impl From<async_std::channel::RecvError> for Error {
-    fn from(item: async_std::channel::RecvError) -> Self {
+    fn from(_: async_std::channel::RecvError) -> Self {
         Error::ChannelRecvError
     }
 }

@@ -5,7 +5,7 @@ use crate::prelude::{
     RpcBlockHeader, RpcTransaction, RpcHash
 };
 
-#[derive(Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct RpcBlock  {
     pub header: RpcBlockHeader,
@@ -13,7 +13,7 @@ pub struct RpcBlock  {
     pub verbose_data: RpcBlockVerboseData,
 }
 
-#[derive(Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct RpcBlockVerboseData {
     pub hash: RpcHash,
