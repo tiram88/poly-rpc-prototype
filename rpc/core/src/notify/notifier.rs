@@ -94,12 +94,3 @@ impl Notifier {
     }
 
 }
-
-impl From<&Listener> for ListenerReceiverSide {
-    fn from(item: &Listener) -> Self {
-        Self {
-            id: item.id(),
-            recv_channel: item.channel.receiver(),
-        }
-    }
-}

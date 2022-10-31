@@ -48,12 +48,23 @@ impl Listener {
 }
 
 /// Contains the receiver side of a listener
+#[derive(Debug)]
 pub struct ListenerReceiverSide {
     pub id: ListenerID,
     pub recv_channel: NotificationReceiver,
 }
 
+impl From<&Listener> for ListenerReceiverSide {
+    fn from(item: &Listener) -> Self {
+        Self {
+            id: item.id(),
+            recv_channel: item.channel.receiver(),
+        }
+    }
+}
+
 /// Contains the sender side of a listener
+#[derive(Debug)]
 pub(crate) struct ListenerSenderSide {
     pub send_channel: NotificationSender,
     pub utxos_addresses: AHashMap<RpcHexData, ()>,
