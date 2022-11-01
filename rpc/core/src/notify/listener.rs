@@ -16,9 +16,9 @@ pub type ListenerID = u64;
 #[derive(Debug)]
 pub(crate) struct Listener {
     id: u64,
-    pub channel: NotificationChannel,
-    pub active_event: EventArray<bool>,
-    pub utxo_addresses: Vec<RpcUtxoAddress>,
+    channel: NotificationChannel,
+    active_event: EventArray<bool>,
+    utxo_addresses: Vec<RpcUtxoAddress>,
 }
 
 impl Listener {
@@ -51,7 +51,7 @@ impl Listener {
         false
     }
 
-    pub(crate) fn is_closed(&self) -> bool {
+    pub(crate) fn _is_closed(&self) -> bool {
         self.channel.is_closed()
     }
 
@@ -102,8 +102,9 @@ impl ListenerSenderSide {
     }
 
     /// Try to send a notification.
-    /// If the notification does not meet requirements, returns Ok(false),
-    /// otherwise returns Ok(true).
+    /// 
+    /// If the notification does not meet requirements (see [`Notification::UtxosChanged`]) returns `Ok(false)`,
+    /// otherwise returns `Ok(true)`.
     pub(crate) fn try_send(&self, notification: Arc<Notification>) -> Result<bool> {
         if self.filter.filter(notification.clone()) {
             match self.send_channel.try_send(notification) {

@@ -11,6 +11,7 @@ use super::result::Result;
 
 /// Manage a list of events listeners and, for each one, a set of events to be notified.
 /// Actually notify the listeners of incoming events.
+#[derive(Debug)]
 pub struct Notifier {
     inner: Arc<Inner>,
 }
@@ -22,8 +23,8 @@ impl Notifier {
         }
     }
 
-    pub async fn connect(&self) {
-        self.inner.clone().connect().await
+    pub fn start(&self) -> Result<()> {
+        self.inner.clone().start()
     }
 
     pub fn register_new_listener(&self) -> ListenerReceiverSide {
@@ -46,12 +47,13 @@ impl Notifier {
         self.inner.clone().stop_notify(id, event)
     }
 
-    pub async fn disconnect(&self) -> Result<()> {
-        self.inner.clone().disconnect().await
+    pub async fn stop(&self) -> Result<()> {
+        self.inner.clone().shutdown().await
     }
 
 }
 
+#[derive(Debug)]
 struct Inner {
     /// Map of registered listeners
     listeners: Arc<Mutex<AHashMap<ListenerID, Listener>>>,
@@ -79,7 +81,7 @@ impl Inner {
         }
     }
 
-    async fn connect(self: Arc<Self>) {
+    fn start(self: Arc<Self>) -> Result<()> {
         for event in EVENT_TYPE_ARRAY.clone().into_iter() {
             if !self.dispatcher_is_running[event].load(Ordering::SeqCst) {
                 let (shutdown_trigger, shutdown_listener) = triggered::trigger();
@@ -88,6 +90,7 @@ impl Inner {
                 self.dispatch_task(event, shutdown_trigger, self.dispatcher_channel[event].receiver());
             }
         }
+        Ok(())
     }
 
     /// Launch a dispatch task for a given event type.
@@ -224,7 +227,7 @@ impl Inner {
         Ok(())
     }
 
-    async fn disconnect(self: Arc<Self>) -> Result<()> {
+    async fn shutdown(self: Arc<Self>) -> Result<()> {
         let mut result: Result<()> = Ok(());
         for event in EVENT_TYPE_ARRAY.clone().into_iter() {
             match self.clone().try_send(event, DispatchMessage::Shutdown) {

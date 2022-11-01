@@ -3,18 +3,45 @@
 use std::{time::{SystemTime, UNIX_EPOCH}, str::FromStr, vec, sync::Arc};
 use async_trait::async_trait;
 use hashes::Hash;
-use crate::model::*;
+use crate::{model::*, notify::{notifier::Notifier, channel::Channel, collector::Collector as CollecterT}};
 use crate::errors::*;
 use crate::result::*;
 use crate::api::rpc;
+use super::collector::{Collector, ConsensusNotificationChannel};
 
 #[derive(Debug)]
-pub struct RpcApi{}
+pub struct RpcApi{
+    notifier: Arc<Notifier>,
+    collector: Arc<Collector>,
+}
 
 impl RpcApi {
     pub fn new() -> Arc<Self> {
-        Arc::new(Self {})
+        let notifier = Arc::new(Notifier::new(false));
+
+        // FIXME: the channel receiver should be obtained by registering to a consensus notification service
+        let consensus_notifications: ConsensusNotificationChannel = Channel::default();
+
+        let collector = Arc::new(Collector::new(consensus_notifications.receiver(), notifier.clone()));
+
+        Arc::new(Self {
+            notifier,
+            collector,
+        })
     }
+
+    pub fn start(&self) -> RpcResult<()> {
+        self.notifier.clone().start()?;
+        self.collector.clone().start()?;
+        Ok(())
+    }
+
+    pub async fn stop(&self) -> RpcResult<()> {
+        self.collector.clone().stop().await?;
+        self.notifier.clone().stop().await?;
+        Ok(())
+    }
+    
 }
 
 #[async_trait]
@@ -31,7 +58,7 @@ impl rpc::RpcApi for RpcApi {
     }
 
     async fn get_info(&self, _req: GetInfoRequest) -> RpcResult<GetInfoResponse> {
-        // Info shoulg be queried from consensus
+        // Info should be queried from consensus
         Ok(GetInfoResponse{
             p2p_id: "test".to_string(),
             mempool_size: 1,
@@ -41,6 +68,8 @@ impl rpc::RpcApi for RpcApi {
         })
     }
 }
+
+
 
 
 fn create_dummy_rpc_block() -> RpcBlock {

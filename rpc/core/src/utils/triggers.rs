@@ -1,12 +1,10 @@
-pub use triggered::*;
-
-// use triggered::{Trigger,Listener};
+pub use triggered::{Trigger, Listener};
 
 /// Wrapper containing a single Trigger instance
 #[derive(Debug, Clone)]
 pub struct SingleTrigger {
-    pub trigger : Trigger,
-    pub listener : Listener,
+    pub trigger: Trigger,
+    pub listener: Listener,
 }
 
 impl SingleTrigger {
@@ -22,16 +20,16 @@ impl SingleTrigger {
 /// Bi-directional trigger meant to function in
 /// request/response fashion
 #[derive(Debug, Clone)]
-pub struct ReqRespTrigger {
-    pub request : SingleTrigger,
-    pub response : SingleTrigger,
+pub struct DuplexTrigger {
+    pub request: SingleTrigger,
+    pub response: SingleTrigger,
 }
 
-impl ReqRespTrigger {
-    pub fn new() -> ReqRespTrigger {
-        ReqRespTrigger {
-            request : SingleTrigger::new(),
-            response : SingleTrigger::new(),
+impl DuplexTrigger {
+    pub fn new() -> DuplexTrigger {
+        DuplexTrigger {
+            request: SingleTrigger::new(),
+            response: SingleTrigger::new(),
         }
     }
 }

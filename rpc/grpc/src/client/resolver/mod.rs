@@ -12,14 +12,13 @@ use tokio::{sync::{mpsc::{self, Sender, Receiver}, oneshot}};
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{codec::CompressionEncoding, transport::{Endpoint, Channel}};
 use tonic::Streaming;
-use rpc_core::{api::ops::RpcApiOps};
+use rpc_core::{
+    api::ops::RpcApiOps,
+    utils::triggers::DuplexTrigger
+};
 use crate::protowire::{
     KaspadRequest, KaspadResponse, GetInfoRequestMessage, rpc_client::RpcClient,
 };
-use crate::{
-    triggers::{ReqRespTrigger}
-};
-
 use super::{result::Result, errors::Error};
 
 use matcher::*;
@@ -69,11 +68,11 @@ pub struct Resolver {
     send_channel: Sender<KaspadRequest>,
     pending_calls: Arc<Mutex<VecDeque<Pending>>>,
     sender_is_running : AtomicBool,
-    sender_shutdown : ReqRespTrigger,
+    sender_shutdown : DuplexTrigger,
     receiver_is_running : AtomicBool,
-    receiver_shutdown : ReqRespTrigger,
+    receiver_shutdown : DuplexTrigger,
     timeout_is_running : AtomicBool,
-    timeout_shutdown : ReqRespTrigger,
+    timeout_shutdown : DuplexTrigger,
     timeout_timer_interval : AtomicU64,
     timeout_duration : AtomicU64,
 }
@@ -85,11 +84,11 @@ impl Resolver {
             send_channel,
             pending_calls: Arc::new(Mutex::new(VecDeque::new())),
             sender_is_running: AtomicBool::new(false),
-            sender_shutdown : ReqRespTrigger::new(),
+            sender_shutdown : DuplexTrigger::new(),
             receiver_is_running: AtomicBool::new(false),
-            receiver_shutdown : ReqRespTrigger::new(),
+            receiver_shutdown : DuplexTrigger::new(),
             timeout_is_running: AtomicBool::new(false),
-            timeout_shutdown : ReqRespTrigger::new(),
+            timeout_shutdown : DuplexTrigger::new(),
             timeout_duration : AtomicU64::new(5_000),
             timeout_timer_interval : AtomicU64::new(1_000),
        }

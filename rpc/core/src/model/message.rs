@@ -47,7 +47,7 @@ pub struct NotifyBlockAddedResponse {
 #[derive(Clone, Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct BlockAddedNotification {
-    block: RpcBlock,
+    pub block: RpcBlock,
 }
 
 /// GetInfoRequest returns info about the node.

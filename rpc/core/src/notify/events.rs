@@ -32,6 +32,7 @@ pub(crate) const EVENT_TYPE_ARRAY: [EventType; EVENT_COUNT] = [
     EventType::NewBlockTemplate,
 ];
 
+// TODO: write a macro to get this
 impl From<&Notification> for EventType {
     fn from(item: &Notification) -> Self {
         match item {
@@ -70,7 +71,7 @@ impl From<&NotificationType> for EventType {
 pub(crate) struct EventArray<T> ([T; EVENT_COUNT]);
 
 impl<T> EventArray<T> {
-    pub(crate) fn len(&self) -> usize {
+    pub(crate) fn _len(&self) -> usize {
         self.0.len()
     }
 }
