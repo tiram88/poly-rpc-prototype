@@ -80,10 +80,10 @@ impl Inner {
     }
 
     async fn connect(self: Arc<Self>) {
-        let mut dispatcher_shutdown_listener = self.dispatcher_shutdown_listener.lock().unwrap();
         for event in EVENT_TYPE_ARRAY.clone().into_iter() {
             if !self.dispatcher_is_running[event].load(Ordering::SeqCst) {
                 let (shutdown_trigger, shutdown_listener) = triggered::trigger();
+                let mut dispatcher_shutdown_listener = self.dispatcher_shutdown_listener.lock().unwrap();
                 dispatcher_shutdown_listener[event] = Some(shutdown_listener);
                 self.dispatch_task(event, shutdown_trigger, self.dispatcher_channel[event].receiver());
             }
@@ -92,10 +92,12 @@ impl Inner {
 
     /// Launch a dispatch task for a given event type.
     /// 
-    /// This separation by event type allows to keep an internal map
+    /// Implementation note:
+    /// The separation by event type allows to keep an internal map
     /// with all listeners willing to receive notification of the
     /// corresponding type. The dispatcher receives and execute messages
-    /// instructing to modify the map, this without blocking the whole notifier.
+    /// instructing to modify the map. This happens without blocking
+    /// the whole notifier.
     fn dispatch_task(
         &self,
         event: EventType,
@@ -223,11 +225,11 @@ impl Inner {
     }
 
     async fn disconnect(self: Arc<Self>) -> Result<()> {
-        let mut dispatcher_shutdown_listener = self.dispatcher_shutdown_listener.lock().unwrap();
         let mut result: Result<()> = Ok(());
         for event in EVENT_TYPE_ARRAY.clone().into_iter() {
             match self.clone().try_send(event, DispatchMessage::Shutdown) {
                 Ok(_) => {
+                    let mut dispatcher_shutdown_listener = self.dispatcher_shutdown_listener.lock().unwrap();
                     let shutdown_listener = dispatcher_shutdown_listener[event].take().unwrap();
                     shutdown_listener.await;    
                 },
