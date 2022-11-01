@@ -1,12 +1,21 @@
 use std::sync::Arc;
-
 use async_trait::async_trait;
+
 use rpc_core::{
     api::rpc::RpcApi,
     api::ops::RpcApiOps,
     GetBlockRequest, GetBlockResponse,
     GetInfoRequest, GetInfoResponse,
     RpcResult,
+    notify::{
+        notifier::Notifier,
+        listener::{
+            ListenerReceiverSide,
+            ListenerID
+        },
+        events::EventType,
+    },
+    NotificationType
 };
 use self::resolver::Resolver;
 use self::result::Result;
@@ -17,13 +26,19 @@ mod result;
 
 pub struct RpcApiGrpc {
     inner: Arc<Resolver>,
+    notifier: Arc<Notifier>,
 }
 
 impl RpcApiGrpc {
     pub async fn connect(address: String) -> Result<RpcApiGrpc>
     {
         let inner = Resolver::connect(address).await?;
-        Ok(Self { inner })
+        let notifier = Arc::new(Notifier::new(false));
+
+        Ok(Self {
+            inner,
+            notifier,
+        })
     }
 
     pub async fn shutdown(&mut self) -> Result<()> {
@@ -40,5 +55,34 @@ impl RpcApi for RpcApiGrpc {
 
     async fn get_info(&self, request: GetInfoRequest) -> RpcResult<GetInfoResponse> {
         self.inner.clone().call(RpcApiOps::GetInfo, request).await?.as_ref().try_into()
+    }
+
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // Notification API
+
+    /// Register a new listenera and return an id and channer receiver.
+    async fn register_new_listener(&self) -> ListenerReceiverSide {
+        self.notifier.register_new_listener()
+    }
+
+    /// Unregister an existing listener.
+    /// 
+    /// Stop all notifications for this listener and drop it's channel.
+    async fn unregister_listener(&self, id: ListenerID) -> RpcResult<()> {
+        self.notifier.unregister_listener(id)?;
+        Ok(())
+    }
+
+    /// Start sending notifications of some type to a listener.
+    async fn start_notify(&self, id: ListenerID, notification_type: NotificationType) -> RpcResult<()> {
+        self.notifier.start_notify(id, notification_type)?;
+        Ok(())
+    }
+
+    /// Stop sending notifications of some type to a listener.
+    async fn stop_notify(&self, id: ListenerID, event: EventType) -> RpcResult<()> {
+        self.notifier.stop_notify(id, event)?;
+        Ok(())
     }
 }

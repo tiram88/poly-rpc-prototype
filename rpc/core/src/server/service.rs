@@ -3,7 +3,20 @@
 use std::{time::{SystemTime, UNIX_EPOCH}, str::FromStr, vec, sync::Arc};
 use async_trait::async_trait;
 use hashes::Hash;
-use crate::{model::*, notify::{notifier::Notifier, channel::Channel, collector::Collector as CollecterT}};
+use crate::{
+    model::*, 
+    notify::{
+        notifier::Notifier,
+        channel::Channel,
+        collector::Collector as CollecterT,
+        listener::{
+            ListenerReceiverSide,
+            ListenerID
+        },
+        events::EventType,
+    },
+    NotificationType
+    };
 use crate::errors::*;
 use crate::result::*;
 use crate::api::rpc;
@@ -66,6 +79,34 @@ impl rpc::RpcApi for RpcApi {
             is_utxo_indexed: false,
             is_synced: false,
         })
+    }
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // Notification API
+
+    /// Register a new listenera and return an id and channer receiver.
+    async fn register_new_listener(&self) -> ListenerReceiverSide {
+        self.notifier.register_new_listener()
+    }
+
+    /// Unregister an existing listener.
+    /// 
+    /// Stop all notifications for this listener and drop it's channel.
+    async fn unregister_listener(&self, id: ListenerID) -> RpcResult<()> {
+        self.notifier.unregister_listener(id)?;
+        Ok(())
+    }
+
+    /// Start sending notifications of some type to a listener.
+    async fn start_notify(&self, id: ListenerID, notification_type: NotificationType) -> RpcResult<()> {
+        self.notifier.start_notify(id, notification_type)?;
+        Ok(())
+    }
+
+    /// Stop sending notifications of some type to a listener.
+    async fn stop_notify(&self, id: ListenerID, event: EventType) -> RpcResult<()> {
+        self.notifier.stop_notify(id, event)?;
+        Ok(())
     }
 }
 

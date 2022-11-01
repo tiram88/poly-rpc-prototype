@@ -178,12 +178,13 @@ impl Inner {
 
     fn unregister_listener(self: Arc<Self>, id: ListenerID) -> Result<()> {
         let mut listeners = self.listeners.lock().unwrap();
-        if let Some(listener) = listeners.remove(&id) {
+        if let Some(mut listener) = listeners.remove(&id) {
             drop(listeners);
             let active_events: Vec<EventType> = EVENT_TYPE_ARRAY.clone().into_iter().filter(|event| listener.has(*event)).collect();
             for event in active_events.iter() {
                 self.clone().stop_notify(listener.id(), *event)?;
             }
+            listener.close();
         }
         Ok(())
     }

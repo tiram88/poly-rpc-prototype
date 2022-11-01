@@ -5,7 +5,9 @@
 //! No data submitted by the client to the server can be trusted
 
 use async_trait::async_trait;
-use crate::model::*;
+use crate::notify::events::EventType;
+use crate::{model::*, NotificationType};
+use crate::notify::listener::{ListenerReceiverSide, ListenerID};
 // use crate::notifications::*;
 use crate::result::*;
 
@@ -159,9 +161,23 @@ pub trait RpcApi : Sync + Send {
     // ) -> RpcResult<GetCoinSupplyResponse>;
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // Notification API
 
-    // TODO implement channel notification interface
+    /// Register a new listenera and return an id and channer receiver.
+    async fn register_new_listener(&self) -> ListenerReceiverSide;
 
+    /// Unregister an existing listener.
+    /// 
+    /// Stop all notifications for this listener and drop it's channel.
+    async fn unregister_listener(&self, id: ListenerID) -> RpcResult<()>;
+
+    /// Start sending notifications of some type to a listener.
+    async fn start_notify(&self, id: ListenerID, notification_type: NotificationType) -> RpcResult<()>;
+
+    /// Stop sending notifications of some type to a listener.
+    async fn stop_notify(&self, id: ListenerID, event: EventType) -> RpcResult<()>;
+
+    
     // /// # start_notify()
     // /// 
     // /// Register a channel for event notification

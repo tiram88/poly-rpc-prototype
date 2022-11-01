@@ -51,7 +51,13 @@ impl Listener {
         false
     }
 
-    pub(crate) fn _is_closed(&self) -> bool {
+    pub(crate) fn close(&mut self) {
+        if !self.is_closed() {
+            self.channel.close();
+        }
+    }
+
+    pub(crate) fn is_closed(&self) -> bool {
         self.channel.is_closed()
     }
 
