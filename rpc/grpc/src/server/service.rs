@@ -1,5 +1,5 @@
 use std::{
-    net::SocketAddr, pin::Pin, sync::Arc, collections::HashMap, io::ErrorKind,
+    net::SocketAddr, pin::Pin, sync::Arc, io::ErrorKind,
 };
 use futures::Stream;
 use tokio::sync::{mpsc, RwLock};
@@ -11,71 +11,28 @@ use rpc_core::{
     server::service::RpcApi,
     RpcResult,
 };
+use crate::server::StatusResult;
 use crate::protowire::{
     rpc_server::Rpc,
     KaspadRequest, KaspadResponse,
     kaspad_request::Payload,
     GetBlockResponseMessage, NotifyBlockAddedResponseMessage, GetInfoResponseMessage, 
 };
+use super::connection::{
+    GrpcSender,
+    GrpcConnectionManager,
+};
 
-pub type StatusResult<T> = Result<T, tonic::Status>;
 
-pub type GrpcSender = mpsc::Sender<StatusResult<KaspadResponse>>;
-
-pub struct GrpcConnection {
-    address: SocketAddr,
-    sender: GrpcSender,
-}
-
-impl GrpcConnection {
-    pub fn new(address: SocketAddr, sender: GrpcSender) -> Self {
-        Self { address, sender }
-    }
-    pub async fn send(&self, message: StatusResult<KaspadResponse>) {
-        match self.sender.send(message).await {
-            Ok(_) => {}
-            Err(err) => {
-                println!("[send] SendError: to {}, {:?}", self.address, err);
-                // TODO: drop this connection
-            }
-        }
-    }
-}
-
-pub struct GrpcConnectionManager {
-    connections: HashMap<SocketAddr, GrpcConnection>,
-}
-
-impl GrpcConnectionManager {
-    pub fn new() -> Self {
-        Self { connections: HashMap::new(), }
-    }
-
-    pub async fn register(&mut self, address: SocketAddr, sender: GrpcSender) {
-        println!("register a new gRPC connection from: {}", address);
-        let connection = GrpcConnection::new(address, sender);
-        match self.connections.insert(address.clone(), connection) {
-            Some(_prev) => {
-                //prev.sender.closed().await
-            },
-            None => {}
-        }
-    }
-    pub async fn dismiss(& mut self, address: SocketAddr) {
-        println!("dismiss a gRPC connection from: {}", address);
-        if let Some(_connection) = self.connections.remove(&address) {
-            //connection.sender.closed().await;
-        }
-    }
-}
 
 pub struct RpcService {
-    pub core_service: Arc<RpcApi>,
+    core_service: Arc<RpcApi>,
     connection_manager: Arc<RwLock<GrpcConnectionManager>>,
 }
 
 impl RpcService {
-    pub fn new(core_service: Arc<RpcApi>, connection_manager: Arc<RwLock<GrpcConnectionManager>>) -> Self {
+    pub fn new(core_service: Arc<RpcApi>) -> Self {
+        let connection_manager = Arc::new(RwLock::new(GrpcConnectionManager::new()));
         Self {
             core_service,
             connection_manager,
@@ -86,8 +43,8 @@ impl RpcService {
         self.connection_manager.write().await.register(address, sender).await;
     }
 
-    pub async fn dismiss_connection(&self, address: SocketAddr) {
-        self.connection_manager.write().await.dismiss(address).await;
+    pub async fn unregister_connection(&self, address: SocketAddr) {
+        self.connection_manager.write().await.unregister(address).await;
     }
 }
 
@@ -123,7 +80,7 @@ impl Rpc for RpcService {
                     Err(_) => {
                         // If sending failed, then remove the connection from connection manager
                         println!("[Remote] stream tx sending error. Remote {:?}", &remote_addr);
-                        connection_manager.write().await.dismiss(remote_addr).await;
+                        connection_manager.write().await.unregister(remote_addr).await;
                     }
                 }
             }
@@ -178,7 +135,7 @@ impl Rpc for RpcService {
                                 println!("tx send error: {:?}", err);
                             }
                         }
-                   },
+                    },
                     Ok(None) => {
                         //println!("request error: {:?}", request.err());
                         println!("Request handler stream {0} got Ok(None). Connection terminated by the client.", remote_addr);
@@ -202,7 +159,7 @@ impl Rpc for RpcService {
                 }
             }
             println!("Request handler {0} terminated", remote_addr);
-            connection_manager.write().await.dismiss(remote_addr).await;
+            connection_manager.write().await.unregister(remote_addr).await;
         });
         
         // Return connection stream

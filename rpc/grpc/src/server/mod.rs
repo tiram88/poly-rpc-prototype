@@ -1,14 +1,15 @@
 use std::net::SocketAddr;
-use std::sync::Arc;
 use rpc_core::server::service::RpcApi;
 use crate::protowire::rpc_server::RpcServer;
-use crate::server::service::GrpcConnectionManager;
 use tonic::codec::CompressionEncoding;
-use tokio::sync::RwLock;
 use tonic::transport::{Server, Error};
 use tokio::task::JoinHandle;
 
+pub mod connection;
 pub mod service;
+
+pub type StatusResult<T> = Result<T, tonic::Status>;
+
 
 // see https://hyper.rs/guides/server/graceful-shutdown/
 async fn shutdown_signal() {
@@ -21,7 +22,7 @@ async fn shutdown_signal() {
 pub fn run_server(address: SocketAddr) -> JoinHandle<Result<(), Error>> {
     println!("KaspadRPCServer listening on: {}", address);
 
-    let grpc_service = service::RpcService::new(RpcApi::new(), Arc::new(RwLock::new(GrpcConnectionManager::new())));
+    let grpc_service = service::RpcService::new(RpcApi::new());
 
     let svc = RpcServer::new(grpc_service)
         .send_compressed(CompressionEncoding::Gzip)
