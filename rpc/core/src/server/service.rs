@@ -7,7 +7,7 @@ use crate::{
     model::*, 
     notify::{
         notifier::Notifier,
-        channel::Channel,
+        channel::{Channel, NotificationChannel},
         collector::Collector as CollecterT,
         listener::{
             ListenerReceiverSide,
@@ -44,7 +44,7 @@ impl RpcApi {
     }
 
     pub fn start(&self) -> RpcResult<()> {
-        self.notifier.clone().start()?;
+        self.notifier.clone().start();
         self.collector.clone().start()?;
         Ok(())
     }
@@ -85,8 +85,8 @@ impl rpc::RpcApi for RpcApi {
     // Notification API
 
     /// Register a new listenera and return an id and channer receiver.
-    async fn register_new_listener(&self) -> ListenerReceiverSide {
-        self.notifier.register_new_listener()
+    async fn register_new_listener(&self, channel: Option<NotificationChannel>) -> ListenerReceiverSide {
+        self.notifier.register_new_listener(channel)
     }
 
     /// Unregister an existing listener.

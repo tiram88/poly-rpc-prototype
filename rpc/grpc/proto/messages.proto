@@ -16,6 +16,7 @@ message KaspadResponse {
   oneof payload {
     GetCurrentNetworkResponseMessage getCurrentNetworkResponse = 1002;
     NotifyBlockAddedResponseMessage notifyBlockAddedResponse = 1008;
+    BlockAddedNotificationMessage blockAddedNotification = 1009;
     GetBlockResponseMessage getBlockResponse = 1026;
     GetInfoResponseMessage getInfoResponse = 1064;
   }

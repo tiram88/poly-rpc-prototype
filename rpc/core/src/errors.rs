@@ -1,7 +1,7 @@
 use std::num::TryFromIntError;
 use thiserror::Error;
 
-#[derive(Debug, Error)]
+#[derive(Clone, Debug, Error)]
 pub enum RpcError {
 
     #[error("Not implemented")]

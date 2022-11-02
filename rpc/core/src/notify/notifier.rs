@@ -5,9 +5,25 @@ use ahash::AHashMap;
 use async_std::channel::Receiver;
 //use workflow_core::task::spawn;
 use crate::{Notification, NotificationType};
-use super::{listener::{ListenerID, Listener, ListenerReceiverSide, ListenerSenderSide}, message::DispatchMessage, channel::Channel};
-use super::events::{EventArray, EventType, EVENT_TYPE_ARRAY};
-use super::result::Result;
+use super::{
+    channel::{
+        Channel,
+        NotificationChannel
+    },
+    events::{
+        EventArray,
+        EventType,
+        EVENT_TYPE_ARRAY,
+    },
+    listener::{
+        ListenerID,
+        Listener,
+        ListenerReceiverSide,
+        ListenerSenderSide
+    },
+    message::DispatchMessage,
+    result::Result,
+};
 
 /// Manage a list of events listeners and, for each one, a set of events to be notified.
 /// Actually notify the listeners of incoming events.
@@ -23,12 +39,12 @@ impl Notifier {
         }
     }
 
-    pub fn start(&self) -> Result<()> {
-        self.inner.clone().start()
+    pub fn start(&self) {
+        self.inner.clone().start();
     }
 
-    pub fn register_new_listener(&self) -> ListenerReceiverSide {
-        self.inner.clone().register_new_listener()
+    pub fn register_new_listener(&self, channel: Option<NotificationChannel>) -> ListenerReceiverSide {
+        self.inner.clone().register_new_listener(channel)
     }
 
     pub fn unregister_listener(&self, id: ListenerID) -> Result<()> {
@@ -81,7 +97,7 @@ impl Inner {
         }
     }
 
-    fn start(self: Arc<Self>) -> Result<()> {
+    fn start(self: Arc<Self>) {
         for event in EVENT_TYPE_ARRAY.clone().into_iter() {
             if !self.dispatcher_is_running[event].load(Ordering::SeqCst) {
                 let (shutdown_trigger, shutdown_listener) = triggered::trigger();
@@ -90,7 +106,6 @@ impl Inner {
                 self.dispatch_task(event, shutdown_trigger, self.dispatcher_channel[event].receiver());
             }
         }
-        Ok(())
     }
 
     /// Launch a dispatch task for a given event type.
@@ -161,14 +176,14 @@ impl Inner {
         });
     }
 
-    fn register_new_listener(self: Arc<Self>) -> ListenerReceiverSide {
+    fn register_new_listener(self: Arc<Self>, channel: Option<NotificationChannel>) -> ListenerReceiverSide {
         let mut listeners = self.listeners.lock().unwrap();
         loop {
             let id = u64::from_le_bytes(rand::random::<[u8; 8]>());
 
             // This is very unlikely to happen but still, check for duplicates
             if !listeners.contains_key(&id) {
-                let listener = Listener::new(id);
+                let listener = Listener::new(id, channel);
                 let registration: ListenerReceiverSide = (&listener).into();
                 listeners.insert(id, listener);
                 return registration;

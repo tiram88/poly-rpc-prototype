@@ -2,7 +2,6 @@ use std::fmt::Debug;
 use std::sync::Arc;
 
 use ahash::AHashMap;
-use async_std::channel::unbounded;
 
 use crate::stubs::RpcUtxoAddress;
 use crate::{NotificationReceiver, RpcHexData, Notification, NotificationSender};
@@ -22,8 +21,8 @@ pub(crate) struct Listener {
 }
 
 impl Listener {
-    pub(crate) fn new(id: ListenerID) -> Listener {
-        let channel = NotificationChannel::new(unbounded::<Arc<Notification>>());
+    pub(crate) fn new(id: ListenerID, channel: Option<NotificationChannel>) -> Listener {
+        let channel = channel.unwrap_or_default();
         Self {
             id,
             channel,

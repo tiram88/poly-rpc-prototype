@@ -13,7 +13,7 @@ use rpc_core::{
             ListenerReceiverSide,
             ListenerID
         },
-        events::EventType,
+        events::EventType, channel::NotificationChannel,
     },
     NotificationType
 };
@@ -62,8 +62,8 @@ impl RpcApi for RpcApiGrpc {
     // Notification API
 
     /// Register a new listenera and return an id and channer receiver.
-    async fn register_new_listener(&self) -> ListenerReceiverSide {
-        self.notifier.register_new_listener()
+    async fn register_new_listener(&self, channel: Option<NotificationChannel>) -> ListenerReceiverSide {
+        self.notifier.register_new_listener(channel)
     }
 
     /// Unregister an existing listener.

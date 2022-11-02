@@ -17,8 +17,8 @@ impl From<&rpc_core::GetBlockRequest> for protowire::GetBlockRequestMessage {
     }
 }
 
-impl From<&RpcResult<rpc_core::GetBlockResponse>> for protowire::GetBlockResponseMessage {
-    fn from(item: &RpcResult<rpc_core::GetBlockResponse>) -> Self {
+impl From<RpcResult<&rpc_core::GetBlockResponse>> for protowire::GetBlockResponseMessage {
+    fn from(item: RpcResult<&rpc_core::GetBlockResponse>) -> Self {
         // match item {
         //     Ok(response) => {
         //         Self {
@@ -39,7 +39,6 @@ impl From<&RpcResult<rpc_core::GetBlockResponse>> for protowire::GetBlockRespons
                 .map(|x| protowire::RpcBlock::from(&x.block))
                 .ok(),
             error: item
-                .as_ref()
                 .map_err(|x| protowire::RpcError::from(x))
                 .err(),
         }
@@ -52,11 +51,10 @@ impl From<&rpc_core::NotifyBlockAddedRequest> for protowire::NotifyBlockAddedReq
     }
 }
 
-impl From<&RpcResult<rpc_core::NotifyBlockAddedResponse>> for protowire::NotifyBlockAddedResponseMessage {
-    fn from(item: &RpcResult<rpc_core::NotifyBlockAddedResponse>) -> Self {
+impl From<RpcResult<&rpc_core::NotifyBlockAddedResponse>> for protowire::NotifyBlockAddedResponseMessage {
+    fn from(item: RpcResult<&rpc_core::NotifyBlockAddedResponse>) -> Self {
         Self {
             error: item
-                .as_ref()
                 .map_err(|x| protowire::RpcError::from(x))
                 .err(),
         }
@@ -69,8 +67,8 @@ impl From<&rpc_core::GetInfoRequest> for protowire::GetInfoRequestMessage {
     }
 }
 
-impl From<&RpcResult<rpc_core::GetInfoResponse>> for protowire::GetInfoResponseMessage {
-    fn from(item: &RpcResult<rpc_core::GetInfoResponse>) -> Self {
+impl From<RpcResult<&rpc_core::GetInfoResponse>> for protowire::GetInfoResponseMessage {
+    fn from(item: RpcResult<&rpc_core::GetInfoResponse>) -> Self {
         match item {
             Ok(req) => Self {
                 p2p_id: req.p2p_id.clone(),

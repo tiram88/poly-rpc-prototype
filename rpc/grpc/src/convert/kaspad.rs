@@ -22,6 +22,9 @@ impl From<&kaspad_response::Payload> for RpcApiOps {
             kaspad_response::Payload::NotifyBlockAddedResponse(_) => RpcApiOps::Notify,
             kaspad_response::Payload::GetBlockResponse(_) => RpcApiOps::GetBlock,
             kaspad_response::Payload::GetInfoResponse(_) => RpcApiOps::GetInfo,
+
+            // Notifications
+            kaspad_response::Payload::BlockAddedNotification(_) => RpcApiOps::Notify,
         }
     }
 }
@@ -138,23 +141,44 @@ pub mod kaspad_response_convert {
             // rpc_core to protowire
             // ----------------------------------------------------------------------------
 
-            impl From<&RpcResult<$($core_struct)::+>> for kaspad_response::Payload {
-                fn from(item: &RpcResult<$($core_struct)::+>) -> Self {
+            impl From<RpcResult<&$($core_struct)::+>> for kaspad_response::Payload {
+                fn from(item: RpcResult<&$($core_struct)::+>) -> Self {
                     kaspad_response::Payload::$($variant)::+(item.into())
                 }
             }
             
-            impl From<&RpcResult<$($core_struct)::+>> for KaspadResponse {
-                fn from(item: &RpcResult<$($core_struct)::+>) -> Self {
+            impl From<RpcResult<&$($core_struct)::+>> for KaspadResponse {
+                fn from(item: RpcResult<&$($core_struct)::+>) -> Self {
                     Self {
                         payload: Some(item.into())
                     }
                 }
             }
 
+            impl From<RpcResult<$($core_struct)::+>> for kaspad_response::Payload {
+                fn from(item: RpcResult<$($core_struct)::+>) -> Self {
+                    kaspad_response::Payload::$($variant)::+(item.into())
+                }
+            }
+            
+            impl From<RpcResult<$($core_struct)::+>> for KaspadResponse {
+                fn from(item: RpcResult<$($core_struct)::+>) -> Self {
+                    Self {
+                        payload: Some(item.into())
+                    }
+                }
+            }
+
+            impl From<RpcResult<$($core_struct)::+>> for $($protowire_struct)::+ {
+                fn from(item: RpcResult<$($core_struct)::+>) -> Self {
+                    item.as_ref().map_err(|x| (*x).clone()).into()
+                }
+            }
+
             impl From<RpcError> for $($protowire_struct)::+ {
                 fn from(item: RpcError) -> Self {
-                    (&Err(item)).into()
+                    let x: RpcResult<&$($core_struct)::+> = Err(item);
+                    x.into()
                 }
             }
             

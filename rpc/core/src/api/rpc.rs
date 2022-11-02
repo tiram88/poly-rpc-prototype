@@ -5,6 +5,7 @@
 //! No data submitted by the client to the server can be trusted
 
 use async_trait::async_trait;
+use crate::notify::channel::NotificationChannel;
 use crate::notify::events::EventType;
 use crate::{model::*, NotificationType};
 use crate::notify::listener::{ListenerReceiverSide, ListenerID};
@@ -164,7 +165,7 @@ pub trait RpcApi : Sync + Send {
     // Notification API
 
     /// Register a new listenera and return an id and channer receiver.
-    async fn register_new_listener(&self) -> ListenerReceiverSide;
+    async fn register_new_listener(&self, channel: Option<NotificationChannel>) -> ListenerReceiverSide;
 
     /// Unregister an existing listener.
     /// 

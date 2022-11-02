@@ -5,6 +5,7 @@ use tonic::codec::CompressionEncoding;
 use tonic::transport::{Server, Error};
 use tokio::task::JoinHandle;
 
+pub mod collector;
 pub mod connection;
 pub mod service;
 
