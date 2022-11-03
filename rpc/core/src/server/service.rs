@@ -7,8 +7,11 @@ use crate::{
     model::*, 
     notify::{
         notifier::Notifier,
-        channel::{Channel, NotificationChannel},
-        collector::Collector as CollecterT,
+        channel::{
+            Channel,
+            NotificationChannel
+        },
+        collector::{Collector as CollecterT},
         listener::{
             ListenerReceiverSide,
             ListenerID
@@ -20,12 +23,15 @@ use crate::{
 use crate::errors::*;
 use crate::result::*;
 use crate::api::rpc;
-use super::collector::{Collector, ConsensusNotificationChannel};
+use super::collector::{
+    ConsensusCollector,
+    ConsensusNotificationChannel
+};
 
 #[derive(Debug)]
 pub struct RpcApi{
     notifier: Arc<Notifier>,
-    collector: Arc<Collector>,
+    collector: Arc<ConsensusCollector>,
 }
 
 impl RpcApi {
@@ -35,7 +41,7 @@ impl RpcApi {
         // FIXME: the channel receiver should be obtained by registering to a consensus notification service
         let consensus_notifications: ConsensusNotificationChannel = Channel::default();
 
-        let collector = Arc::new(Collector::new(consensus_notifications.receiver(), notifier.clone()));
+        let collector = Arc::new(ConsensusCollector::new(consensus_notifications.receiver(), notifier.clone()));
 
         Arc::new(Self {
             notifier,

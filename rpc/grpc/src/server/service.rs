@@ -14,6 +14,7 @@ use rpc_core::{
     notify::{
         notifier::Notifier,
         collector::Collector as CollectorT,
+        collector_from::RpcCoreCollector,
     },
     server::{
         service::RpcApi,
@@ -27,7 +28,6 @@ use crate::protowire::{
     GetBlockResponseMessage, NotifyBlockAddedResponseMessage, GetInfoResponseMessage, 
 };
 use super::{
-    collector::Collector,
     connection::{
         GrpcSender,
         GrpcConnectionManager,
@@ -42,7 +42,7 @@ pub struct RpcService {
     core_listener: RwLock<Option<ListenerReceiverSide>>,
     connection_manager: Arc<RwLock<GrpcConnectionManager>>,
     notifier: Arc<Notifier>,
-    collector: Arc<Collector>,
+    collector: Arc<RpcCoreCollector>,
 }
 
 impl RpcService {
@@ -50,7 +50,7 @@ impl RpcService {
         let core_channel = NotificationChannel::default();
         let core_listener = RwLock::new(None);
         let notifier = Arc::new(Notifier::new(true));
-        let collector = Arc::new(Collector::new(core_channel.receiver(), notifier.clone()));
+        let collector = Arc::new(RpcCoreCollector::new(core_channel.receiver(), notifier.clone()));
         let connection_manager = Arc::new(RwLock::new(GrpcConnectionManager::new(notifier.clone())));
         Self {
             core_service,

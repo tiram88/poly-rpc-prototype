@@ -1,6 +1,9 @@
+use std::sync::Arc;
+
 use crate::{
     Notification,
     BlockAddedNotification,
+    notify::collector::ArcConvert,
 };
 use consensus_core::stubs;
 
@@ -23,6 +26,22 @@ impl From<&stubs::BlockAddedNotification> for BlockAddedNotification {
         Self {
             block: (&item.block).into(),
         }
+    }
+}
+
+/// Pseudo conversion from Arc<Notification> to Arc<Notification>.
+/// This is basically a clone() op.
+impl From<ArcConvert<Notification>> for Arc<Notification> {
+    fn from(item: ArcConvert<Notification>) -> Self {
+        (*item).clone()
+    }
+}
+
+impl From<ArcConvert<stubs::Notification>> for Arc<Notification> {
+    fn from(item: ArcConvert<stubs::Notification>) -> Self {
+        Arc::new(
+            (&**item).into()
+        )
     }
 }
 
