@@ -7,3 +7,4 @@ include.workspace = true
 license.workspace = true
 
 [dependencies]
+tokio.workspace = true

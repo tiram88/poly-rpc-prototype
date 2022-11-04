@@ -632,6 +632,9 @@ dependencies = [
 [[package]]
 name = "consensus"
 version = "0.1.0"
+dependencies = [
+ "tokio",
+]
 
 [[package]]
 name = "consensus-core"

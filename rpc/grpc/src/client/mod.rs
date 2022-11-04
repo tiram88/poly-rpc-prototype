@@ -41,6 +41,15 @@ impl RpcApiGrpc {
         })
     }
 
+    pub async fn start(&self) {
+        self.notifier.clone().start();
+    }
+
+    pub async fn stop(&self) -> Result<()> {
+        self.notifier.clone().stop().await?;
+        Ok(())
+    }
+
     pub async fn shutdown(&mut self) -> Result<()> {
         self.inner.clone().shutdown().await?;
         Ok(())

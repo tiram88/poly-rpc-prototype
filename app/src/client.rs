@@ -21,6 +21,7 @@ async fn main() -> Result<(), Error> {
     let args = Args::parse();
 
     let mut c = RpcApiGrpc::connect("http://[::1]:10000".to_string()).await?;
+    c.start().await;
 
     println!("*** RUST PROTOTYPE ***");
     println!("REQUEST Existing hash");
@@ -50,6 +51,30 @@ async fn main() -> Result<(), Error> {
 
     println!("*** GO KASPA NODE ***");
     let mut c_public = RpcApiGrpc::connect(args.address).await?;
+    c_public.start().await;
+
+
+    let listener = c_public.register_new_listener(None);
+    let listener_recv = listener.recv_channel.clone();
+
+    // Launch a reporting task
+    tokio::spawn(async move {
+        loop {
+            if listener_recv.is_closed() {
+                break;
+            }
+            match listener_recv.recv().await {
+                Ok(notification) => println!("Notification received: {:?}", &*notification),
+                Err(err) => println!("Error in notification reporting loop: {:?}", err),
+            }
+        }
+        println!("Leaving notification reporting loop");
+    });
+
+    // Register for notifications
+    c_public.start_notify(listener.id, rpc_core::NotificationType::BlockAdded).await?;
+
+
 
     // println!("REQUEST Public node, existing hash");
     // let request = GetBlockRequest {
@@ -88,12 +113,17 @@ async fn main() -> Result<(), Error> {
     // let response = c_public.get_info(request).await;
     // println!("RESPONSE = {:#?}", response);
 
-    sleep(Duration::from_millis(2000)).await;
+    sleep(Duration::from_millis(10000)).await;
 
     // Closing connections
     println!("Shutting down RUST PROTOTYPE connected client");
+    c.stop().await?;
     c.shutdown().await?;
+
     println!("Shutting down GO KASPA NODE connected client");
+    c_public.unregister_listener(listener.id).await?;
+    listener.recv_channel.close();
+    c_public.stop().await?;
     c_public.shutdown().await?;
 
     sleep(Duration::from_millis(2000)).await;
