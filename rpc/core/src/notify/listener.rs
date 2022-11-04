@@ -12,6 +12,15 @@ use super::result::Result;
 // TODO: consider the use of a newtype instead
 pub type ListenerID = u64;
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum SendingChangedUtxo {
+    /// Send all changed UTXO events, whatever the address
+    All,
+
+    /// Send all changed UTXO events filtered by the address
+    FilteredByAddress,
+}
+
 #[derive(Debug)]
 pub(crate) struct Listener {
     id: u64,
@@ -87,9 +96,9 @@ pub(crate) struct ListenerSenderSide {
 
 impl ListenerSenderSide {
 
-    pub(crate) fn new(listener: &Listener, with_filter: bool, event: EventType) -> Self {
+    pub(crate) fn new(listener: &Listener, sending_changed_utxos: SendingChangedUtxo, event: EventType) -> Self {
         match event {
-            EventType::UtxosChanged if with_filter => {
+            EventType::UtxosChanged if sending_changed_utxos == SendingChangedUtxo::FilteredByAddress => {
                 Self {
                     send_channel: listener.channel.sender(),
                     filter: Box::new(FilterUtxoAddress{

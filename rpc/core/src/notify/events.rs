@@ -2,7 +2,7 @@ use std::{ops::{Index, IndexMut}};
 
 use crate::{Notification, NotificationType};
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[repr(u8)]
 pub enum EventType {
     BlockAdded = 0,

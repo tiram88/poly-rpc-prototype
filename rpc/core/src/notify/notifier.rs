@@ -2,7 +2,7 @@ use std::{
     sync::{Arc, Mutex, atomic::{AtomicBool, Ordering}}, 
 };
 use ahash::AHashMap;
-use async_std::channel::Receiver;
+use async_std::channel::{Receiver, Sender};
 //use workflow_core::task::spawn;
 use crate::{Notification, NotificationType};
 use super::{
@@ -19,7 +19,7 @@ use super::{
         ListenerID,
         Listener,
         ListenerReceiverSide,
-        ListenerSenderSide
+        ListenerSenderSide, SendingChangedUtxo
     },
     message::{DispatchMessage, FeedbackMessage},
     result::Result,
@@ -36,10 +36,10 @@ impl Notifier {
     pub fn new(
         source_notifier: Option<Arc<Notifier>>,
         source_listener: Option<Arc<ListenerReceiverSide>>,
-        filter_utxos_changes: bool
+        sending_changed_utxos: SendingChangedUtxo
     ) -> Self {
         Self {
-            inner: Arc::new(Inner::new(source_notifier, source_listener, filter_utxos_changes)),
+            inner: Arc::new(Inner::new(source_notifier, source_listener, sending_changed_utxos)),
         }
     }
 
@@ -92,15 +92,15 @@ struct Inner {
     feedback_shutdown_listener: Arc<Mutex<Option<triggered::Listener>>>,
     feedback_is_running: Arc<AtomicBool>,
     
-    /// If true, filter utxos changes by address, otherwise notify all utxos changes
-    filter_utxos_changes: AtomicBool,
+    /// How to handle UtxoChanged notifications
+    sending_changed_utxos: SendingChangedUtxo,
 }
 
 impl Inner {
     fn new(
         source_notifier: Option<Arc<Notifier>>,
         source_listener: Option<Arc<ListenerReceiverSide>>,
-        filter_utxos_changes: bool
+        sending_changed_utxos: SendingChangedUtxo
     ) -> Self {
         Self {
             source_notifier,
@@ -112,7 +112,7 @@ impl Inner {
             feedback_channel: Channel::default(),
             feedback_shutdown_listener: Arc::new(Mutex::new(None)),
             feedback_is_running: Arc::new(AtomicBool::default()),
-            filter_utxos_changes: AtomicBool::new(filter_utxos_changes),
+            sending_changed_utxos,
         }
     }
 
@@ -159,15 +159,47 @@ impl Inner {
         dispatcher_is_running.store(true, Ordering::SeqCst);
 
         // Feedback
+        let sending_changed_utxos = self.sending_changed_utxos;
         let has_source = self.has_source();
         let feedback_tx = self.feedback_channel.sender();
 
         // This holds the map of all active listeners for the event type
         let mut listeners: AHashMap<ListenerID, Arc<ListenerSenderSide>> = AHashMap::new();
+
+        // TODO: feed the listeners map with pre-existing self.listeners having event active
+        // This is necessary for the correct handling of repeating start/stop cycles.
         
         workflow_core::task::spawn(async move {
-            let dispatch = dispatch_rx.recv().await.unwrap();
+            
+            fn send_feedback(has_source: bool, feedback_tx: Sender<FeedbackMessage>, message: FeedbackMessage) {
+                if has_source {
+
+                    // TODO: handle actual utxo addresse set
+
+                    match feedback_tx.try_send(message) {
+                        Ok(_) => {},
+                        Err(err) => {
+                            println!("[Notifier] sending feedback error: {:?}", err);
+                        },
+                    }
+                }
+            }
+
+            // We will send feedback for all dispatch message if event is filtered UtxosChanged.
+            // Otherwise, feedback is only sent when needed by the result of a dispatched message.
+            let report_any_change = event == EventType::UtxosChanged && sending_changed_utxos == SendingChangedUtxo::FilteredByAddress;
+
+            let mut need_feedback: bool = true;
             loop {
+                // If needed, send feedback based on listener being empty or not
+                if need_feedback {
+                    if listeners.len() > 0 {
+                        send_feedback(has_source, feedback_tx.clone(), FeedbackMessage::StartEvent(event.into()));
+                    } else {
+                        send_feedback(has_source, feedback_tx.clone(), FeedbackMessage::StopEvent(event.into()));
+                    }
+                }
+                let dispatch = dispatch_rx.recv().await.unwrap();
 
                 match dispatch {
 
@@ -187,48 +219,27 @@ impl Inner {
                             }
                         }
 
+                        // Feedback needed if purge does empty listeners or if reporting any change
+                        need_feedback = (purge.len() == listeners.len()) || report_any_change;
+
                         // Remove closed listeners
                         for id in purge {
                             listeners.remove(&id);
                         }
                     },
 
-                    DispatchMessage::AddListener(id, ref listener) => {
+                    DispatchMessage::AddListener(id, listener) => {
                         listeners.insert(id, listener.clone());
 
-                        if listeners.len() == 1 {
-
-                            // Send feedback
-                            if has_source {
-
-                                // TODO: handle actual utxo addresse set
-                                match feedback_tx.try_send(FeedbackMessage::StartEvent(event.into())) {
-                                    Ok(_) => {},
-                                    Err(err) => {
-                                        println!("[Notifier] sending start notify feedback error: {:?}", err);
-                                    },
-                                }
-                            }
-                        }
+                        // Feedback needed if a first listener was added or if reporting any change
+                        need_feedback = listeners.len() == 1 || report_any_change;
                     },
 
                     DispatchMessage::RemoveListener(id) => {
                         listeners.remove(&id);
 
-                        if listeners.len() == 0 {
-                            // Send feedback
-                            if has_source {
-
-                                // TODO: handle actual utxo addresse set
-                                match feedback_tx.try_send(FeedbackMessage::StopEvent(event.into())) {
-                                    Ok(_) => {},
-                                    Err(err) => {
-                                        println!("[Notifier] sending stop notify feedback error: {:?}", err);
-                                    },
-                                }
-                            }
-                        }
-
+                        // Feedback needed if no more listeners are present or if reporting any change
+                        need_feedback = listeners.len() == 0 || report_any_change;
                     },
 
                     DispatchMessage::Shutdown => {
@@ -256,8 +267,8 @@ impl Inner {
         let source_listener = self.source_listener.clone();
 
         workflow_core::task::spawn(async move {
-            let feedback = feedback_rx.recv().await.unwrap();
             loop {
+                let feedback = feedback_rx.recv().await.unwrap();
 
                 match feedback {
 
@@ -330,7 +341,7 @@ impl Inner {
             if listener.toggle(event, true) {
                 let listener_sender_side = ListenerSenderSide::new(
                     listener,
-                    self.filter_utxos_changes.load(Ordering::SeqCst),
+                    self.sending_changed_utxos,
                     event);
                 let msg = DispatchMessage::AddListener(listener.id(), Arc::new(listener_sender_side));
                 self.clone().try_send_dispatch(event, msg)?;

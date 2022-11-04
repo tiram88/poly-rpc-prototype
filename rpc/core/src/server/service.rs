@@ -14,7 +14,7 @@ use crate::{
         collector::{Collector as CollecterT},
         listener::{
             ListenerReceiverSide,
-            ListenerID
+            ListenerID, SendingChangedUtxo
         },
     },
     NotificationType
@@ -35,7 +35,7 @@ pub struct RpcApi{
 
 impl RpcApi {
     pub fn new() -> Arc<Self> {
-        let notifier = Arc::new(Notifier::new(None, None, false));
+        let notifier = Arc::new(Notifier::new(None, None, SendingChangedUtxo::All));
 
         // FIXME: the channel receiver should be obtained by registering to a consensus notification service
         let consensus_notifications: ConsensusNotificationChannel = Channel::default();
@@ -93,7 +93,7 @@ impl rpc::RpcApi for RpcApi {
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // Notification API
 
-    /// Register a new listenera and return an id and channer receiver.
+    /// Register a new listenera and return an id and channel receiver.
     fn register_new_listener(&self, channel: Option<NotificationChannel>) -> ListenerReceiverSide {
         self.notifier.register_new_listener(channel)
     }

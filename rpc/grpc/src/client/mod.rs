@@ -11,7 +11,7 @@ use rpc_core::{
         channel::NotificationChannel,
         listener::{
             ListenerReceiverSide,
-            ListenerID
+            ListenerID, SendingChangedUtxo
         },
         notifier::Notifier,
     },
@@ -33,7 +33,7 @@ impl RpcApiGrpc {
     pub async fn connect(address: String) -> Result<RpcApiGrpc>
     {
         let inner = Resolver::connect(address).await?;
-        let notifier = Arc::new(Notifier::new(None, None, false));
+        let notifier = Arc::new(Notifier::new(None, None, SendingChangedUtxo::FilteredByAddress));
 
         Ok(Self {
             inner,
@@ -61,7 +61,7 @@ impl RpcApi for RpcApiGrpc {
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // Notification API
 
-    /// Register a new listenera and return an id and channer receiver.
+    /// Register a new listenera and return an id and channel receiver.
     fn register_new_listener(&self, channel: Option<NotificationChannel>) -> ListenerReceiverSide {
         self.notifier.register_new_listener(channel)
     }

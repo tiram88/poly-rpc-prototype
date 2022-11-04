@@ -4,7 +4,7 @@ use std::{
 use futures::Stream;
 use rpc_core::{RpcResult};
 use rpc_core::notify::channel::NotificationChannel;
-use rpc_core::notify::listener::{ListenerID, ListenerReceiverSide};
+use rpc_core::notify::listener::{ListenerID, ListenerReceiverSide, SendingChangedUtxo};
 use tokio::sync::{mpsc, RwLock};
 use tonic::{
     Request, Response,
@@ -42,6 +42,27 @@ use super::{
 /// 
 /// Registers into a central core service in order to receive consensus notifications and
 /// send those forward to the registered clients.
+/// 
+/// 
+/// ### Implementation notes
+/// 
+/// The service is a listener of the provided core service. The registration happens in the constructor,
+/// giving it the lifetime of the overall service.
+/// 
+/// As a corollary, the unregistration should occur just before the object is dropped by calling finalize.
+/// 
+/// #### Lifetime and usage
+/// 
+/// All level-matching paired fns can be repeated.
+/// 
+/// - new -> Self
+///     - start
+///         - register_connection
+///         - unregister_connection
+///     - stop
+/// - finalize
+/// 
+/// _Object is ready for being dropped. Any further usage of it is undefined behaviour._
 pub struct RpcService {
     core_service: Arc<RpcApi>,
     core_channel: NotificationChannel,
@@ -59,7 +80,7 @@ impl RpcService {
         let core_listener = Arc::new(core_service.register_new_listener(Some(core_channel.clone())));
     
         // Prepare internals
-        let notifier = Arc::new(Notifier::new(Some(core_service.clone().notifier()), Some(core_listener.clone()), true));
+        let notifier = Arc::new(Notifier::new(Some(core_service.clone().notifier()), Some(core_listener.clone()), SendingChangedUtxo::FilteredByAddress));
         let collector = Arc::new(RpcCoreCollector::new(core_channel.receiver(), notifier.clone()));
         let connection_manager = Arc::new(RwLock::new(GrpcConnectionManager::new(notifier.clone())));
 
@@ -101,6 +122,12 @@ impl RpcService {
         self.collector.clone().stop().await?;
         self.notifier.clone().stop().await?;
 
+        Ok(())
+    }
+
+    pub async fn finalize(&self) -> RpcResult<()> {
+        self.core_service.unregister_listener(self.core_listener.id).await?;
+        self.core_channel.receiver().close();
         Ok(())
     }
 

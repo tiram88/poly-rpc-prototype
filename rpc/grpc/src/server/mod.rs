@@ -29,11 +29,6 @@ pub fn run_server(address: SocketAddr) -> JoinHandle<Result<(), Error>> {
     // TODO: the core_service should come from higher
     let core_service = RpcApi::new();
     
-    // let core_channel = NotificationChannel::default();
-    // async {
-    //     let core_listener = core_service.register_new_listener(Some(core_channel.clone())).await;
-    // };
-
     let grpc_service = service::RpcService::new(core_service.clone());
 
     let svc = RpcServer::new(grpc_service)
