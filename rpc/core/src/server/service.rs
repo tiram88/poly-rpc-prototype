@@ -16,7 +16,6 @@ use crate::{
             ListenerReceiverSide,
             ListenerID
         },
-        events::EventType,
     },
     NotificationType
     };
@@ -36,7 +35,7 @@ pub struct RpcApi{
 
 impl RpcApi {
     pub fn new() -> Arc<Self> {
-        let notifier = Arc::new(Notifier::new(false));
+        let notifier = Arc::new(Notifier::new(None, None, false));
 
         // FIXME: the channel receiver should be obtained by registering to a consensus notification service
         let consensus_notifications: ConsensusNotificationChannel = Channel::default();
@@ -59,6 +58,10 @@ impl RpcApi {
         self.collector.clone().stop().await?;
         self.notifier.clone().stop().await?;
         Ok(())
+    }
+
+    pub fn notifier(&self) -> Arc<Notifier> {
+        self.notifier.clone()
     }
     
 }
@@ -91,7 +94,7 @@ impl rpc::RpcApi for RpcApi {
     // Notification API
 
     /// Register a new listenera and return an id and channer receiver.
-    async fn register_new_listener(&self, channel: Option<NotificationChannel>) -> ListenerReceiverSide {
+    fn register_new_listener(&self, channel: Option<NotificationChannel>) -> ListenerReceiverSide {
         self.notifier.register_new_listener(channel)
     }
 
@@ -110,8 +113,8 @@ impl rpc::RpcApi for RpcApi {
     }
 
     /// Stop sending notifications of some type to a listener.
-    async fn stop_notify(&self, id: ListenerID, event: EventType) -> RpcResult<()> {
-        self.notifier.stop_notify(id, event)?;
+    async fn stop_notify(&self, id: ListenerID, notification_type: NotificationType) -> RpcResult<()> {
+        self.notifier.stop_notify(id, notification_type)?;
         Ok(())
     }
 }

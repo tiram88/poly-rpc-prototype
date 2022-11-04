@@ -2,7 +2,7 @@ use std::{
     net::SocketAddr, pin::Pin, sync::Arc, io::ErrorKind,
 };
 use futures::Stream;
-use rpc_core::RpcResult;
+use rpc_core::{RpcResult};
 use rpc_core::notify::channel::NotificationChannel;
 use rpc_core::notify::listener::{ListenerID, ListenerReceiverSide};
 use tokio::sync::{mpsc, RwLock};
@@ -12,6 +12,7 @@ use tonic::{
 use rpc_core::{
     api::rpc::RpcApi as RpcApiT,
     notify::{
+        events::EVENT_TYPE_ARRAY,
         notifier::Notifier,
         collector::Collector as CollectorT,
         collector_from::RpcCoreCollector,
@@ -35,11 +36,16 @@ use super::{
 };
 
 
-
+/// A protowire RPC service.
+/// 
+/// Relay requests to a central core service that queries the consensus.
+/// 
+/// Registers into a central core service in order to receive consensus notifications and
+/// send those forward to the registered clients.
 pub struct RpcService {
     core_service: Arc<RpcApi>,
     core_channel: NotificationChannel,
-    core_listener: RwLock<Option<ListenerReceiverSide>>,
+    core_listener: Arc<ListenerReceiverSide>,
     connection_manager: Arc<RwLock<GrpcConnectionManager>>,
     notifier: Arc<Notifier>,
     collector: Arc<RpcCoreCollector>,
@@ -47,11 +53,16 @@ pub struct RpcService {
 
 impl RpcService {
     pub fn new(core_service: Arc<RpcApi>) -> Self {
+
+        // Prepare core objects
         let core_channel = NotificationChannel::default();
-        let core_listener = RwLock::new(None);
-        let notifier = Arc::new(Notifier::new(true));
+        let core_listener = Arc::new(core_service.register_new_listener(Some(core_channel.clone())));
+    
+        // Prepare internals
+        let notifier = Arc::new(Notifier::new(Some(core_service.clone().notifier()), Some(core_listener.clone()), true));
         let collector = Arc::new(RpcCoreCollector::new(core_channel.receiver(), notifier.clone()));
         let connection_manager = Arc::new(RwLock::new(GrpcConnectionManager::new(notifier.clone())));
+
         Self {
             core_service,
             core_channel,
@@ -63,13 +74,27 @@ impl RpcService {
     }
 
     pub async fn start(&self) -> RpcResult<()> {
+        // Start the internal notifier & collector
         self.notifier.clone().start();
         self.collector.clone().start()?;
-        {
-            let mut core_listener = self.core_listener.write().await;
-            let listener = self.core_service.register_new_listener(Some(self.core_channel.clone())).await;
-            *core_listener = Some(listener);
-        }
+
+        // // Register the internal notifier into core_service
+        // let listener_id: ListenerID;
+        // {
+        //     let mut core_listener = self.core_listener.write().await;
+        //     let listener = self.core_service.register_new_listener(Some(self.core_channel.clone())).await;
+        //     listener_id = listener.id;
+        //     *core_listener = Some(listener);
+        // }
+
+        // // Be notified of all event types from core_service
+
+        // // TODO: implement some auto-start/stop mechanism based on the actual
+        // // internal notifier clients subscribtions to events.
+        // for event in EVENT_TYPE_ARRAY.clone().into_iter() {
+        //     self.core_service.start_notify(listener_id, event.into()).await?;
+        // }
+
         Ok(())
     }
 
@@ -82,15 +107,26 @@ impl RpcService {
     }
 
     pub async fn stop(&self) -> RpcResult<()> {
-        {
-            let mut core_listener = self.core_listener.write().await;
-            if (*core_listener).is_some() {
-                let listener = (*core_listener).take().unwrap();
-                self.core_service.unregister_listener(listener.id).await?;
-            }
+        // // Unregister the internal notifier from core_service.
+        // // This will automatically stop the notification of all event types.
+        // {
+        //     let mut core_listener = self.core_listener.write().await;
+        //     if (*core_listener).is_some() {
+        //         let listener = (*core_listener).take().unwrap();
+        //         self.core_service.unregister_listener(listener.id).await?;
+        //     }
+        // }
+
+        // Unsubscribe from all notification types
+        let listener_id = self.core_listener.id;
+        for event in EVENT_TYPE_ARRAY.clone().into_iter() {
+            self.core_service.stop_notify(listener_id, event.into()).await?;
         }
+
+        // Stop the internal notifier & collector
         self.collector.clone().stop().await?;
         self.notifier.clone().stop().await?;
+
         Ok(())
     }
 
@@ -114,7 +150,7 @@ impl Rpc for RpcService {
 
         // External sender and reciever
         let (send_channel, mut recv_channel) = mpsc::channel::<StatusResult<KaspadResponse>>(128);
-        self.register_connection(remote_addr, send_channel.clone()).await;
+        let listener_id = self.register_connection(remote_addr, send_channel.clone()).await;
         
         // Internal related sender and reciever
         let (stream_tx, stream_rx) = mpsc::channel::<StatusResult<KaspadResponse>>(10);
@@ -135,8 +171,9 @@ impl Rpc for RpcService {
         });
 
         // Request handler
-        let connection_manager = self.connection_manager.clone();
         let core_service = self.core_service.clone();
+        let connection_manager = self.connection_manager.clone();
+        let notifier = self.notifier.clone();
         let mut stream: tonic::Streaming<KaspadRequest> = request.into_inner();
         tokio::spawn(async move {
             loop {
@@ -160,7 +197,7 @@ impl Rpc for RpcService {
                             },
                             
                             Some(Payload::NotifyBlockAddedRequest(_request)) => {
-                                NotifyBlockAddedResponseMessage::from(rpc_core::RpcError::NotImplemented).into()
+                                NotifyBlockAddedResponseMessage::from(notifier.start_notify(listener_id, rpc_core::NotificationType::BlockAdded)).into()
                             },
                 
                             _ => GetBlockResponseMessage::from(rpc_core::RpcError::String("Server-side API Not implemented".to_string())).into()

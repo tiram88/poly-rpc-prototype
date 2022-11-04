@@ -6,7 +6,6 @@
 
 use async_trait::async_trait;
 use crate::notify::channel::NotificationChannel;
-use crate::notify::events::EventType;
 use crate::{model::*, NotificationType};
 use crate::notify::listener::{ListenerReceiverSide, ListenerID};
 // use crate::notifications::*;
@@ -165,7 +164,7 @@ pub trait RpcApi : Sync + Send {
     // Notification API
 
     /// Register a new listenera and return an id and channer receiver.
-    async fn register_new_listener(&self, channel: Option<NotificationChannel>) -> ListenerReceiverSide;
+    fn register_new_listener(&self, channel: Option<NotificationChannel>) -> ListenerReceiverSide;
 
     /// Unregister an existing listener.
     /// 
@@ -176,7 +175,7 @@ pub trait RpcApi : Sync + Send {
     async fn start_notify(&self, id: ListenerID, notification_type: NotificationType) -> RpcResult<()>;
 
     /// Stop sending notifications of some type to a listener.
-    async fn stop_notify(&self, id: ListenerID, event: EventType) -> RpcResult<()>;
+    async fn stop_notify(&self, id: ListenerID, notification_type: NotificationType) -> RpcResult<()>;
 
     
     // /// # start_notify()

@@ -8,12 +8,12 @@ use rpc_core::{
     GetInfoRequest, GetInfoResponse,
     RpcResult,
     notify::{
-        notifier::Notifier,
+        channel::NotificationChannel,
         listener::{
             ListenerReceiverSide,
             ListenerID
         },
-        events::EventType, channel::NotificationChannel,
+        notifier::Notifier,
     },
     NotificationType
 };
@@ -33,7 +33,7 @@ impl RpcApiGrpc {
     pub async fn connect(address: String) -> Result<RpcApiGrpc>
     {
         let inner = Resolver::connect(address).await?;
-        let notifier = Arc::new(Notifier::new(false));
+        let notifier = Arc::new(Notifier::new(None, None, false));
 
         Ok(Self {
             inner,
@@ -62,7 +62,7 @@ impl RpcApi for RpcApiGrpc {
     // Notification API
 
     /// Register a new listenera and return an id and channer receiver.
-    async fn register_new_listener(&self, channel: Option<NotificationChannel>) -> ListenerReceiverSide {
+    fn register_new_listener(&self, channel: Option<NotificationChannel>) -> ListenerReceiverSide {
         self.notifier.register_new_listener(channel)
     }
 
@@ -81,8 +81,8 @@ impl RpcApi for RpcApiGrpc {
     }
 
     /// Stop sending notifications of some type to a listener.
-    async fn stop_notify(&self, id: ListenerID, event: EventType) -> RpcResult<()> {
-        self.notifier.stop_notify(id, event)?;
+    async fn stop_notify(&self, id: ListenerID, notification_type: NotificationType) -> RpcResult<()> {
+        self.notifier.stop_notify(id, notification_type)?;
         Ok(())
     }
 }

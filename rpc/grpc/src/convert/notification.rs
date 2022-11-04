@@ -6,7 +6,7 @@ use crate::protowire::{
 };
 
 // ----------------------------------------------------------------------------
-// consensus_core to rpc_core
+// rpc_core to protowire
 // ----------------------------------------------------------------------------
 
 impl From<&rpc_core::Notification> for KaspadResponse {
@@ -42,6 +42,6 @@ impl From<&rpc_core::BlockAddedNotification> for BlockAddedNotificationMessage {
 }
 
 // ----------------------------------------------------------------------------
-// rpc_core to consensus_core
+// protowire to rpc_core
 // ----------------------------------------------------------------------------
 

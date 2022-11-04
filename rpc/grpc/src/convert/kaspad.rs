@@ -131,8 +131,10 @@ pub mod kaspad_response_convert {
     use crate::protowire::*;
 
     impl_into_kaspad_response!(rpc_core::GetBlockResponse, GetBlockResponseMessage, GetBlockResponse);
-    impl_into_kaspad_response!(rpc_core::NotifyBlockAddedResponse, NotifyBlockAddedResponseMessage, NotifyBlockAddedResponse);
     impl_into_kaspad_response!(rpc_core::GetInfoResponse, GetInfoResponseMessage, GetInfoResponse);
+
+    impl_into_kaspad_response!(rpc_core::NotifyBlockAddedResponse, NotifyBlockAddedResponseMessage, NotifyBlockAddedResponse);
+    impl_into_kaspad_notify_response!(rpc_core::NotifyBlockAddedResponse, NotifyBlockAddedResponseMessage, NotifyBlockAddedResponse);
 
     macro_rules! impl_into_kaspad_response {
         ($($core_struct:ident)::+, $($protowire_struct:ident)::+, $($variant:ident)::+) => {
@@ -224,4 +226,26 @@ pub mod kaspad_response_convert {
         };
     }
     use impl_into_kaspad_response;
+
+    macro_rules! impl_into_kaspad_notify_response {
+        ($($core_struct:ident)::+, $($protowire_struct:ident)::+, $($variant:ident)::+) => {
+
+            // ----------------------------------------------------------------------------
+            // rpc_core to protowire
+            // ----------------------------------------------------------------------------
+
+            impl<T> From<Result<(), T>> for $($protowire_struct)::+
+            where
+                T: Into<RpcError>,
+            {
+                fn from(item: Result<(), T>) -> Self {
+                    item
+                        .map(|_| $($core_struct)::+{})
+                        .map_err(|err| err.into()).into()
+                }
+            }
+
+        };
+    }
+    use impl_into_kaspad_notify_response;
 }

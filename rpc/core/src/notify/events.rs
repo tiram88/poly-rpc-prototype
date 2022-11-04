@@ -20,7 +20,7 @@ pub enum EventType {
 pub(crate) const EVENT_COUNT: usize = 9;
 
 // TODO: write a macro or use an external crate to get this
-pub(crate) const EVENT_TYPE_ARRAY: [EventType; EVENT_COUNT] = [
+pub const EVENT_TYPE_ARRAY: [EventType; EVENT_COUNT] = [
     EventType::BlockAdded,
     EventType::VirtualSelectedParentChainChanged,
     EventType::FinalityConflicts,
@@ -31,6 +31,23 @@ pub(crate) const EVENT_TYPE_ARRAY: [EventType; EVENT_COUNT] = [
     EventType::PruningPointUTXOSetOverride,
     EventType::NewBlockTemplate,
 ];
+
+// TODO: write a macro to get this
+impl From<EventType> for NotificationType {
+    fn from(item: EventType) -> Self {
+        match item {
+            EventType::BlockAdded => NotificationType::BlockAdded,
+            EventType::VirtualSelectedParentChainChanged => NotificationType::VirtualSelectedParentChainChanged,
+            EventType::FinalityConflicts => NotificationType::FinalityConflicts,
+            EventType::FinalityConflictResolved => NotificationType::FinalityConflictResolved,
+            EventType::UtxosChanged => NotificationType::UtxosChanged(vec![]),
+            EventType::VirtualSelectedParentBlueScoreChanged => NotificationType::VirtualSelectedParentBlueScoreChanged,
+            EventType::VirtualDaaScoreChanged => NotificationType::VirtualDaaScoreChanged,
+            EventType::PruningPointUTXOSetOverride => NotificationType::PruningPointUTXOSetOverride,
+            EventType::NewBlockTemplate => NotificationType::NewBlockTemplate,
+        }
+    }
+}
 
 // TODO: write a macro to get this
 impl From<&Notification> for EventType {
@@ -49,6 +66,7 @@ impl From<&Notification> for EventType {
     }
 }
 
+// TODO: write a macro to get this
 impl From<&NotificationType> for EventType {
     fn from(item: &NotificationType) -> Self {
         match item {
