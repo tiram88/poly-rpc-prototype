@@ -78,23 +78,6 @@ impl RpcService {
         self.notifier.clone().start();
         self.collector.clone().start()?;
 
-        // // Register the internal notifier into core_service
-        // let listener_id: ListenerID;
-        // {
-        //     let mut core_listener = self.core_listener.write().await;
-        //     let listener = self.core_service.register_new_listener(Some(self.core_channel.clone())).await;
-        //     listener_id = listener.id;
-        //     *core_listener = Some(listener);
-        // }
-
-        // // Be notified of all event types from core_service
-
-        // // TODO: implement some auto-start/stop mechanism based on the actual
-        // // internal notifier clients subscribtions to events.
-        // for event in EVENT_TYPE_ARRAY.clone().into_iter() {
-        //     self.core_service.start_notify(listener_id, event.into()).await?;
-        // }
-
         Ok(())
     }
 
@@ -107,15 +90,6 @@ impl RpcService {
     }
 
     pub async fn stop(&self) -> RpcResult<()> {
-        // // Unregister the internal notifier from core_service.
-        // // This will automatically stop the notification of all event types.
-        // {
-        //     let mut core_listener = self.core_listener.write().await;
-        //     if (*core_listener).is_some() {
-        //         let listener = (*core_listener).take().unwrap();
-        //         self.core_service.unregister_listener(listener.id).await?;
-        //     }
-        // }
 
         // Unsubscribe from all notification types
         let listener_id = self.core_listener.id;
@@ -200,6 +174,7 @@ impl Rpc for RpcService {
                                 NotifyBlockAddedResponseMessage::from(notifier.start_notify(listener_id, rpc_core::NotificationType::BlockAdded)).into()
                             },
                 
+                            // TODO: This must be replaced by actual handling of all request variants
                             _ => GetBlockResponseMessage::from(rpc_core::RpcError::String("Server-side API Not implemented".to_string())).into()
                 
                         };
@@ -212,7 +187,6 @@ impl Rpc for RpcService {
                         }
                     },
                     Ok(None) => {
-                        //println!("request error: {:?}", request.err());
                         println!("Request handler stream {0} got Ok(None). Connection terminated by the server", remote_addr);
                         break;
                     },
