@@ -3,7 +3,6 @@ use std::{
 };
 use ahash::AHashMap;
 use async_std::channel::{Receiver, Sender};
-//use workflow_core::task::spawn;
 use crate::{Notification, NotificationType};
 use super::{
     channel::{
@@ -25,7 +24,9 @@ use super::{
     result::Result,
 };
 
-/// Manage a list of events listeners and, for each one, a set of events to be notified.
+/// A notification sender
+/// 
+/// Manage a collection of [Listener] and, for each one, a set of events to be notified.
 /// Actually notify the listeners of incoming events.
 #[derive(Debug)]
 pub struct Notifier {
@@ -185,9 +186,9 @@ impl Inner {
                 }
             }
 
-            // We will send feedback for all dispatch message if event is filtered UtxosChanged.
-            // Otherwise, feedback is only sent when needed by the result of a dispatched message.
-            let report_any_change = event == EventType::UtxosChanged && sending_changed_utxos == SendingChangedUtxo::FilteredByAddress;
+            // We will send feedback for all dispatch messages if event is a filtered UtxosChanged.
+            // Otherwise, feedback is only sent when needed when applying the dispatched message.
+            let report_all_changes = event == EventType::UtxosChanged && sending_changed_utxos == SendingChangedUtxo::FilteredByAddress;
 
             let mut need_feedback: bool = true;
             loop {
@@ -220,7 +221,7 @@ impl Inner {
                         }
 
                         // Feedback needed if purge does empty listeners or if reporting any change
-                        need_feedback = (purge.len() == listeners.len()) || report_any_change;
+                        need_feedback = (purge.len() == listeners.len()) || report_all_changes;
 
                         // Remove closed listeners
                         for id in purge {
@@ -229,17 +230,18 @@ impl Inner {
                     },
 
                     DispatchMessage::AddListener(id, listener) => {
+                        // We don't care whether this is an insertion or a replacement
                         listeners.insert(id, listener.clone());
 
                         // Feedback needed if a first listener was added or if reporting any change
-                        need_feedback = listeners.len() == 1 || report_any_change;
+                        need_feedback = listeners.len() == 1 || report_all_changes;
                     },
 
                     DispatchMessage::RemoveListener(id) => {
                         listeners.remove(&id);
 
                         // Feedback needed if no more listeners are present or if reporting any change
-                        need_feedback = listeners.len() == 0 || report_any_change;
+                        need_feedback = listeners.len() == 0 || report_all_changes;
                     },
 
                     DispatchMessage::Shutdown => {
@@ -338,7 +340,11 @@ impl Inner {
         let event: EventType = (&notification_type).into();
         let mut listeners = self.listeners.lock().unwrap();
         if let Some(listener) = listeners.get_mut(&id) {
-            if listener.toggle(event, true) {
+
+            // Any mutation in the listener will trigger a dispatch of a brand new ListenerSenderSide
+            // eventually creating or replacing this listener in the matching dispatcher.
+
+            if listener.toggle(notification_type, true) {
                 let listener_sender_side = ListenerSenderSide::new(
                     listener,
                     self.sending_changed_utxos,
@@ -346,6 +352,7 @@ impl Inner {
                 let msg = DispatchMessage::AddListener(listener.id(), Arc::new(listener_sender_side));
                 self.clone().try_send_dispatch(event, msg)?;
             }
+
         }
         Ok(())
     }
@@ -361,7 +368,7 @@ impl Inner {
         let event: EventType = (&notification_type).into();
         let mut listeners = self.listeners.lock().unwrap();
         if let Some(listener) = listeners.get_mut(&id) {
-            if listener.toggle(event, false) {
+            if listener.toggle(notification_type, false) {
                 let msg = DispatchMessage::RemoveListener(listener.id());
                 self.clone().try_send_dispatch(event, msg)?;
             }

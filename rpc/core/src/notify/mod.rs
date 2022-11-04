@@ -7,3 +7,4 @@ pub mod listener;
 pub mod message;
 pub mod notifier;
 pub mod result;
+pub mod utxo_address_map;

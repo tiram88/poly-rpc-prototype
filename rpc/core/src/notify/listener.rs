@@ -1,13 +1,12 @@
 use std::fmt::Debug;
-use std::sync::Arc;
-
-use ahash::AHashMap;
+use std::sync::{Arc};
 
 use crate::stubs::RpcUtxoAddress;
-use crate::{NotificationReceiver, RpcHexData, Notification, NotificationSender};
+use crate::{NotificationReceiver, Notification, NotificationSender, NotificationType};
 use super::events::{EventArray, EventType};
 use super::channel::NotificationChannel;
 use super::result::Result;
+use super::utxo_address_map::RpcUtxoAddressMap;
 
 // TODO: consider the use of a newtype instead
 pub type ListenerID = u64;
@@ -21,12 +20,23 @@ pub enum SendingChangedUtxo {
     FilteredByAddress,
 }
 
+
+/// A listener of [`super::notifier::Notifier`] notifications.
+/// 
+/// ### Implementation details
+/// 
+/// This struct is not asyn protected against mutations.
+/// It is the responsability of code using a [Listener] to guard memory
+/// before calling toggle.
+/// 
+/// Any ListenerSenderSide derived from a [Listener] should also be rebuilt
+/// upon relevant mutation by a call to toggle.
 #[derive(Debug)]
 pub(crate) struct Listener {
     id: u64,
     channel: NotificationChannel,
     active_event: EventArray<bool>,
-    utxo_addresses: Vec<RpcUtxoAddress>,
+    utxo_addresses: RpcUtxoAddressMap,
 }
 
 impl Listener {
@@ -36,7 +46,7 @@ impl Listener {
             id,
             channel,
             active_event: EventArray::default(),
-            utxo_addresses: Vec::new(),
+            utxo_addresses: RpcUtxoAddressMap::new(),
         }
     }
 
@@ -49,14 +59,30 @@ impl Listener {
         self.active_event[event]
     }
 
-    /// Toggle registration for [`EventType`] notifications.
-    /// Return true if a change occured in the registration state.
-    pub(crate) fn toggle(&mut self, event: EventType, active: bool) -> bool {
-        if self.active_event[event] != active {
-            self.active_event[event] = active;
+    fn toggle_utxo_addresses(&mut self, utxo_addresses: &Vec<RpcUtxoAddress>) -> bool {
+        let utxo_addresses: RpcUtxoAddressMap = utxo_addresses.into();
+        if utxo_addresses != self.utxo_addresses {
+            self.utxo_addresses = utxo_addresses;
             return true;
         }
         false
+    }
+
+    /// Toggle registration for [`NotificationType`] notifications.
+    /// Return true if any change occured in the registration state.
+    pub(crate) fn toggle(&mut self, notification_type: NotificationType, active: bool) -> bool {
+        let mut changed = false;
+        let event: EventType = (&notification_type).into();
+
+        if self.active_event[event] != active {
+            self.active_event[event] = active;
+            changed = true;
+        }
+
+        if let NotificationType::UtxosChanged(ref utxo_addresses) = notification_type {
+            changed = self.toggle_utxo_addresses(utxo_addresses);
+        }
+        changed
     }
 
     pub(crate) fn close(&mut self) {
@@ -102,7 +128,7 @@ impl ListenerSenderSide {
                 Self {
                     send_channel: listener.channel.sender(),
                     filter: Box::new(FilterUtxoAddress{
-                        utxos_addresses: listener.utxo_addresses.iter().map(|x| (x.clone(), ())).collect()
+                        utxos_addresses: listener.utxo_addresses.clone()
                     }),
                 }
             },
@@ -152,7 +178,7 @@ impl Filter for Unfiltered {}
 
 #[derive(Clone, Debug)]
 struct FilterUtxoAddress {
-    utxos_addresses: AHashMap<RpcHexData, ()>,
+    utxos_addresses: RpcUtxoAddressMap,
 }
 
 impl InnerFilter for FilterUtxoAddress {
