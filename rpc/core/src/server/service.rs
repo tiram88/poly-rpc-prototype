@@ -100,7 +100,7 @@ impl rpc::RpcApi for RpcApi {
 
     /// Unregister an existing listener.
     /// 
-    /// Stop all notifications for this listener and drop it's channel.
+    /// Stop all notifications for this listener and drop its channel.
     async fn unregister_listener(&self, id: ListenerID) -> RpcResult<()> {
         self.notifier.unregister_listener(id)?;
         Ok(())

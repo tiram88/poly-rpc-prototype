@@ -32,8 +32,8 @@ pub struct RpcApiGrpc {
 impl RpcApiGrpc {
     pub async fn connect(address: String) -> Result<RpcApiGrpc>
     {
-        let inner = Resolver::connect(address).await?;
         let notifier = Arc::new(Notifier::new(None, None, SendingChangedUtxo::FilteredByAddress));
+        let inner = Resolver::connect(address, notifier.clone()).await?;
 
         Ok(Self {
             inner,
@@ -68,7 +68,7 @@ impl RpcApi for RpcApiGrpc {
 
     /// Unregister an existing listener.
     /// 
-    /// Stop all notifications for this listener and drop it's channel.
+    /// Stop all notifications for this listener and drop its channel.
     async fn unregister_listener(&self, id: ListenerID) -> RpcResult<()> {
         self.notifier.unregister_listener(id)?;
         Ok(())

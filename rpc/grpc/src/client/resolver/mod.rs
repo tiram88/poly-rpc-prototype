@@ -14,7 +14,7 @@ use tonic::{codec::CompressionEncoding, transport::{Endpoint, Channel}};
 use tonic::Streaming;
 use rpc_core::{
     api::ops::RpcApiOps,
-    utils::triggers::DuplexTrigger
+    utils::triggers::DuplexTrigger, notify::notifier::Notifier, Notification
 };
 use crate::protowire::{
     KaspadRequest, KaspadResponse, GetInfoRequestMessage, rpc_client::RpcClient,
@@ -65,6 +65,7 @@ impl Pending {
 /// ```
 pub struct Resolver {
     _inner: RpcClient<Channel>,
+    notifier: Arc<Notifier>,
     send_channel: Sender<KaspadRequest>,
     pending_calls: Arc<Mutex<VecDeque<Pending>>>,
     sender_is_running : AtomicBool,
@@ -78,9 +79,14 @@ pub struct Resolver {
 }
 
 impl Resolver {
-    pub(crate) fn new(client: RpcClient<Channel>, send_channel: Sender<KaspadRequest>) -> Self {
+    pub(crate) fn new(
+        client: RpcClient<Channel>,
+        notifier: Arc<Notifier>,
+        send_channel: Sender<KaspadRequest>
+    ) -> Self {
         Self {
             _inner: client,
+            notifier,
             send_channel,
             pending_calls: Arc::new(Mutex::new(VecDeque::new())),
             sender_is_running: AtomicBool::new(false),
@@ -94,7 +100,7 @@ impl Resolver {
        }
     }
 
-    pub(crate) async fn connect(address: String) -> Result<Arc<Self>> {
+    pub(crate) async fn connect(address: String, notifier: Arc<Notifier>) -> Result<Arc<Self>> {
         let channel = Endpoint::from_shared(address.clone())?
             .timeout(tokio::time::Duration::from_secs(5))
             .connect_timeout(tokio::time::Duration::from_secs(20))
@@ -121,7 +127,7 @@ impl Resolver {
             .await?
             .into_inner();
 
-        let resolver = Arc::new(Resolver::new(client, send_channel));
+        let resolver = Arc::new(Resolver::new(client, notifier, send_channel));
 
         // KaspadRequest timeout cleaner
         resolver.clone().timeout_task();
@@ -265,7 +271,7 @@ impl Resolver {
         });
     }
 
-    fn receiver_task(self : Arc<Self>, mut recv_channel: Receiver<KaspadResponse>) {
+    fn receiver_task(self: Arc<Self>, mut recv_channel: Receiver<KaspadResponse>) {
         self.receiver_is_running.store(true,Ordering::SeqCst);
 
         tokio::spawn(async move {
@@ -292,7 +298,14 @@ impl Resolver {
     #[allow(unused_must_use)]
     fn handle_response(&self, response: KaspadResponse) {
         println!("resolver handle_response: {:?}", response);
-        if response.payload.is_some() {
+        if response.is_notification() {
+            if let Ok(notification) = Notification::try_from(&response) {
+
+                // Here we ignore any returned error
+                self.notifier.clone().notifiy(Arc::new(notification));
+                
+            }
+        } else if response.payload.is_some() {
             let response_op: RpcApiOps = response.payload.as_ref().unwrap().into();
             let mut pending_calls = self.pending_calls.lock().unwrap();
             let mut pending: Option<Pending> = None;
