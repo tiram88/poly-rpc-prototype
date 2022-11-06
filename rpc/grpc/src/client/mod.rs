@@ -13,7 +13,8 @@ use rpc_core::{
             ListenerReceiverSide,
             ListenerID, SendingChangedUtxo
         },
-        notifier::Notifier,
+        notifier::Notifier, subscriber::Subscriber,
+        collector_from::RpcCoreCollector, collector::Collector,
     },
     NotificationType
 };
@@ -27,25 +28,33 @@ mod result;
 pub struct RpcApiGrpc {
     inner: Arc<Resolver>,
     notifier: Arc<Notifier>,
+    collector: Arc<RpcCoreCollector>,
 }
 
 impl RpcApiGrpc {
     pub async fn connect(address: String) -> Result<RpcApiGrpc>
     {
-        let notifier = Arc::new(Notifier::new(None, None, SendingChangedUtxo::FilteredByAddress));
-        let inner = Resolver::connect(address, notifier.clone()).await?;
+        let notify_channel = NotificationChannel::default();
+        let inner = Resolver::connect(address, notify_channel.sender()).await?;
+        let subscriber = Subscriber::new(inner.clone(), 0);
+
+        let notifier = Arc::new(Notifier::new(Some(subscriber), SendingChangedUtxo::FilteredByAddress));
+        let collector = Arc::new(RpcCoreCollector::new(notify_channel.receiver(), notifier.clone()));
 
         Ok(Self {
             inner,
             notifier,
+            collector,
         })
     }
 
     pub async fn start(&self) {
         self.notifier.clone().start();
+        self.collector.clone().start();
     }
 
     pub async fn stop(&self) -> Result<()> {
+        self.collector.clone().stop().await?;
         self.notifier.clone().stop().await?;
         Ok(())
     }

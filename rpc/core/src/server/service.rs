@@ -35,7 +35,9 @@ pub struct RpcApi{
 
 impl RpcApi {
     pub fn new() -> Arc<Self> {
-        let notifier = Arc::new(Notifier::new(None, None, SendingChangedUtxo::All));
+
+        // FIXME: Some consensus-compatible subscriber could be provided here
+        let notifier = Arc::new(Notifier::new(None, SendingChangedUtxo::All));
 
         // FIXME: the channel receiver should be obtained by registering to a consensus notification service
         let consensus_notifications: ConsensusNotificationChannel = Channel::default();
@@ -48,10 +50,9 @@ impl RpcApi {
         })
     }
 
-    pub fn start(&self) -> RpcResult<()> {
+    pub fn start(&self) {
         self.notifier.clone().start();
-        self.collector.clone().start()?;
-        Ok(())
+        self.collector.clone().start();
     }
 
     pub async fn stop(&self) -> RpcResult<()> {

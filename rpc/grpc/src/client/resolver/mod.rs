@@ -3,6 +3,7 @@ use std::{
     sync::{Arc, Mutex, atomic::{AtomicBool, Ordering, AtomicU64}},
     collections::VecDeque
 };
+use async_trait::async_trait;
 use futures::{
     future::FutureExt, // for `.fuse()`
     pin_mut,
@@ -13,11 +14,19 @@ use tokio_stream::wrappers::ReceiverStream;
 use tonic::{codec::CompressionEncoding, transport::{Endpoint, Channel}};
 use tonic::Streaming;
 use rpc_core::{
-    api::ops::RpcApiOps,
-    utils::triggers::DuplexTrigger, notify::notifier::Notifier, Notification
+    api::ops::{RpcApiOps, SubscribeCommand},
+    Notification,
+    notify::{
+        subscriber::SubscriptionManager,
+        listener::ListenerID,
+    },
+    utils::triggers::DuplexTrigger,
+    NotificationType,
+    RpcResult,
+    NotificationSender,
 };
 use crate::protowire::{
-    KaspadRequest, KaspadResponse, GetInfoRequestMessage, rpc_client::RpcClient,
+    KaspadRequest, KaspadResponse, GetInfoRequestMessage, rpc_client::RpcClient, kaspad_request,
 };
 use super::{result::Result, errors::Error};
 
@@ -26,6 +35,7 @@ mod matcher;
 
 pub type SenderResponse = tokio::sync::oneshot::Sender<Result<KaspadResponse>>;
 
+#[derive(Debug)]
 struct Pending {
     timestamp: Instant,
     op: RpcApiOps,
@@ -63,15 +73,24 @@ impl Pending {
 /// // | call --------------------------------------------------------------------------------->|
 /// //                                 | sender_task ----------->| receiver_task -------------->|
 /// ```
+#[derive(Debug)]
 pub struct Resolver {
     _inner: RpcClient<Channel>,
-    notifier: Arc<Notifier>,
+
+    // Pushing incoming notifications forward
+    notify_channel: NotificationSender,
+
+    // Sending to server
     send_channel: Sender<KaspadRequest>,
     pending_calls: Arc<Mutex<VecDeque<Pending>>>,
     sender_is_running : AtomicBool,
     sender_shutdown : DuplexTrigger,
+
+    // Receiving from server
     receiver_is_running : AtomicBool,
     receiver_shutdown : DuplexTrigger,
+
+    // Pending timeout cleaning task
     timeout_is_running : AtomicBool,
     timeout_shutdown : DuplexTrigger,
     timeout_timer_interval : AtomicU64,
@@ -81,12 +100,12 @@ pub struct Resolver {
 impl Resolver {
     pub(crate) fn new(
         client: RpcClient<Channel>,
-        notifier: Arc<Notifier>,
+        notify_channel: NotificationSender,
         send_channel: Sender<KaspadRequest>
     ) -> Self {
         Self {
             _inner: client,
-            notifier,
+            notify_channel,
             send_channel,
             pending_calls: Arc::new(Mutex::new(VecDeque::new())),
             sender_is_running: AtomicBool::new(false),
@@ -100,7 +119,7 @@ impl Resolver {
        }
     }
 
-    pub(crate) async fn connect(address: String, notifier: Arc<Notifier>) -> Result<Arc<Self>> {
+    pub(crate) async fn connect(address: String, notify_channel: NotificationSender) -> Result<Arc<Self>> {
         let channel = Endpoint::from_shared(address.clone())?
             .timeout(tokio::time::Duration::from_secs(5))
             .connect_timeout(tokio::time::Duration::from_secs(20))
@@ -127,7 +146,7 @@ impl Resolver {
             .await?
             .into_inner();
 
-        let resolver = Arc::new(Resolver::new(client, notifier, send_channel));
+        let resolver = Arc::new(Resolver::new(client, notify_channel, send_channel));
 
         // KaspadRequest timeout cleaner
         resolver.clone().timeout_task();
@@ -302,7 +321,7 @@ impl Resolver {
             if let Ok(notification) = Notification::try_from(&response) {
 
                 // Here we ignore any returned error
-                self.notifier.clone().notifiy(Arc::new(notification));
+                self.notify_channel.try_send(Arc::new(notification));
                 
             }
         } else if response.payload.is_some() {
@@ -374,4 +393,21 @@ impl Resolver {
         Ok(())
     }
 
+}
+
+#[async_trait]
+impl SubscriptionManager for Resolver {
+    async fn start_notify(self: Arc<Self>, _: ListenerID, notification_type: NotificationType) -> RpcResult<()> {
+        // FIXME: Enhance protowire with Subscribe Commands
+        let request = kaspad_request::Payload::from_notification_type(&notification_type, SubscribeCommand::Start);
+        self.clone().call((&request).into(), request).await?;
+        Ok(())
+    }
+
+    async fn stop_notify(self: Arc<Self>, _: ListenerID, notification_type: NotificationType) -> RpcResult<()> {
+        // FIXME: Enhance protowire with Subscribe Commands
+        let request = kaspad_request::Payload::from_notification_type(&notification_type, SubscribeCommand::Stop);
+        self.clone().call((&request).into(), request).await?;
+        Ok(())
+    }
 }

@@ -8,7 +8,7 @@ impl From<&kaspad_request::Payload> for RpcApiOps {
     fn from(item: &kaspad_request::Payload) -> Self {
         match item {
             kaspad_request::Payload::GetCurrentNetworkRequest(_) => RpcApiOps::GetCurrentNetwork,
-            kaspad_request::Payload::NotifyBlockAddedRequest(_) => RpcApiOps::Notify,
+            kaspad_request::Payload::NotifyBlockAddedRequest(_) => RpcApiOps::NotifyBlockAdded,
             kaspad_request::Payload::GetBlockRequest(_) => RpcApiOps::GetBlock,
             kaspad_request::Payload::GetInfoRequest(_) => RpcApiOps::GetInfo,
         }
@@ -19,13 +19,19 @@ impl From<&kaspad_response::Payload> for RpcApiOps {
     fn from(item: &kaspad_response::Payload) -> Self {
         match item {
             kaspad_response::Payload::GetCurrentNetworkResponse(_) => RpcApiOps::GetCurrentNetwork,
-            kaspad_response::Payload::NotifyBlockAddedResponse(_) => RpcApiOps::Notify,
+            kaspad_response::Payload::NotifyBlockAddedResponse(_) => RpcApiOps::NotifyBlockAdded,
             kaspad_response::Payload::GetBlockResponse(_) => RpcApiOps::GetBlock,
             kaspad_response::Payload::GetInfoResponse(_) => RpcApiOps::GetInfo,
 
             // Notifications
-            kaspad_response::Payload::BlockAddedNotification(_) => RpcApiOps::Notify,
+            kaspad_response::Payload::BlockAddedNotification(_) => RpcApiOps::Notification,
         }
+    }
+}
+
+impl From<kaspad_request::Payload> for KaspadRequest {
+    fn from(item: kaspad_request::Payload) -> Self {
+        KaspadRequest { payload: Some(item) }
     }
 }
 

@@ -6,5 +6,6 @@ pub mod events;
 pub mod listener;
 pub mod message;
 pub mod notifier;
+pub mod subscriber;
 pub mod result;
 pub mod utxo_address_map;

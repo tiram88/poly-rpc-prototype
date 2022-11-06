@@ -48,7 +48,7 @@ where
 {
     pub fn new(
         recv_channel: CollectorNotificationReceiver<T>,
-        notifier: Arc<Notifier>
+        notifier: Arc<Notifier>,
     ) -> Self {
         Self {
             recv_channel,
@@ -118,17 +118,12 @@ where
     T: Send + Sync + 'static + Sized,
     ArcConvert<T>: Into<Arc<Notification>>,
 {
-    fn start(self: Arc<Self>) -> Result<()> {
+    fn start(self: Arc<Self>) {
         self.collect_task();
-        Ok(())
     }
 
     async fn stop(self: Arc<Self>) -> Result<()> {
         self.stop_collect().await
-    }
-    
-    fn notifier(self: Arc<Self>) -> Arc<Notifier> {
-        self.notifier.clone()
     }
 }
 

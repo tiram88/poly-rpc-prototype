@@ -3,7 +3,8 @@ use std::{
 };
 use ahash::AHashMap;
 use async_std::channel::{Receiver, Sender};
-use crate::{Notification, NotificationType};
+use async_trait::async_trait;
+use crate::{Notification, NotificationType, RpcResult};
 use super::{
     channel::{
         Channel,
@@ -20,8 +21,15 @@ use super::{
         ListenerReceiverSide,
         ListenerSenderSide, SendingChangedUtxo
     },
-    message::{DispatchMessage, FeedbackMessage},
+    message::{
+        DispatchMessage,
+        SubscribeMessage,
+    },
     result::Result,
+    subscriber::{
+        SubscriptionManager,
+        Subscriber
+    },
 };
 
 /// A notification sender
@@ -35,12 +43,11 @@ pub struct Notifier {
 
 impl Notifier {
     pub fn new(
-        source_notifier: Option<Arc<Notifier>>,
-        source_listener: Option<Arc<ListenerReceiverSide>>,
-        sending_changed_utxos: SendingChangedUtxo
+        subscriber: Option<Subscriber>,
+        sending_changed_utxos: SendingChangedUtxo,
     ) -> Self {
         Self {
-            inner: Arc::new(Inner::new(source_notifier, source_listener, sending_changed_utxos)),
+            inner: Arc::new(Inner::new(subscriber, sending_changed_utxos)),
         }
     }
 
@@ -74,12 +81,21 @@ impl Notifier {
 
 }
 
+#[async_trait]
+impl SubscriptionManager for Notifier {
+    async fn start_notify(self: Arc<Self>, id: ListenerID, notification_type: NotificationType) -> RpcResult<()> {
+        self.inner.clone().start_notify(id, notification_type)?;
+        Ok(())
+    }
+
+    async fn stop_notify(self: Arc<Self>, id: ListenerID, notification_type: NotificationType) -> RpcResult<()> {
+        self.inner.clone().stop_notify(id, notification_type)?;
+        Ok(())
+    }
+}
+
 #[derive(Debug)]
 struct Inner {
-    /// Source notifier
-    source_notifier: Option<Arc<Notifier>>,
-    source_listener: Option<Arc<ListenerReceiverSide>>,
-
     /// Map of registered listeners
     listeners: Arc<Mutex<AHashMap<ListenerID, Listener>>>,
 
@@ -88,10 +104,8 @@ struct Inner {
     dispatcher_shutdown_listener: Arc<Mutex<EventArray<Option<triggered::Listener>>>>,
     dispatcher_is_running: EventArray<Arc<AtomicBool>>,
 
-    /// Feedback channel
-    feedback_channel: Channel<FeedbackMessage>,
-    feedback_shutdown_listener: Arc<Mutex<Option<triggered::Listener>>>,
-    feedback_is_running: Arc<AtomicBool>,
+    /// Subscriber
+    subscriber: Arc<Option<Arc<Subscriber>>>,
     
     /// How to handle UtxoChanged notifications
     sending_changed_utxos: SendingChangedUtxo,
@@ -99,39 +113,24 @@ struct Inner {
 
 impl Inner {
     fn new(
-        source_notifier: Option<Arc<Notifier>>,
-        source_listener: Option<Arc<ListenerReceiverSide>>,
-        sending_changed_utxos: SendingChangedUtxo
+        subscriber: Option<Subscriber>,
+        sending_changed_utxos: SendingChangedUtxo,
     ) -> Self {
+        let subscriber = subscriber.map(|x| Arc::new(x));
         Self {
-            source_notifier,
-            source_listener,
             listeners: Arc::new(Mutex::new(AHashMap::new())),
             dispatcher_channel: EventArray::default(),
             dispatcher_shutdown_listener: Arc::new(Mutex::new(EventArray::default())),
             dispatcher_is_running: EventArray::default(),
-            feedback_channel: Channel::default(),
-            feedback_shutdown_listener: Arc::new(Mutex::new(None)),
-            feedback_is_running: Arc::new(AtomicBool::default()),
+            subscriber: Arc::new(subscriber),
             sending_changed_utxos,
         }
     }
 
-    fn has_source(&self) -> bool {
-        self.clone().source_listener.is_some() &&
-        self.clone().source_notifier.is_some()
-    }
-
     fn start(self: Arc<Self>) {
-        if self.clone().feedback_is_running.load(Ordering::SeqCst) != true &&
-           self.clone().has_source()
-        {
-            let (shutdown_trigger, shutdown_listener) = triggered::trigger();
-            let mut feedback_shutdown_listener = self.feedback_shutdown_listener.lock().unwrap();
-            *feedback_shutdown_listener = Some(shutdown_listener);
-            self.feedback_task(shutdown_trigger, self.feedback_channel.receiver());
+        if let Some(ref subscriber) = self.subscriber.clone().as_ref() {
+            subscriber.clone().start();
         }
-
         for event in EVENT_TYPE_ARRAY.clone().into_iter() {
             if self.clone().dispatcher_is_running[event].load(Ordering::SeqCst) != true {
                 let (shutdown_trigger, shutdown_listener) = triggered::trigger();
@@ -160,9 +159,10 @@ impl Inner {
         dispatcher_is_running.store(true, Ordering::SeqCst);
 
         // Feedback
+        let send_subscriber = self.subscriber.clone().as_ref().as_ref().map(|x| x.sender());
+        let has_subscriber = self.subscriber.clone().as_ref().is_some();
+
         let sending_changed_utxos = self.sending_changed_utxos;
-        let has_source = self.has_source();
-        let feedback_tx = self.feedback_channel.sender();
 
         // This holds the map of all active listeners for the event type
         let mut listeners: AHashMap<ListenerID, Arc<ListenerSenderSide>> = AHashMap::new();
@@ -172,17 +172,12 @@ impl Inner {
         
         workflow_core::task::spawn(async move {
             
-            fn send_feedback(has_source: bool, feedback_tx: Sender<FeedbackMessage>, message: FeedbackMessage) {
-                if has_source {
-
-                    // TODO: handle actual utxo addresse set
-
-                    match feedback_tx.try_send(message) {
-                        Ok(_) => {},
-                        Err(err) => {
-                            println!("[Notifier] sending feedback error: {:?}", err);
-                        },
-                    }
+            fn send_feedback(feedback_tx: Sender<SubscribeMessage>, message: SubscribeMessage) {
+                match feedback_tx.try_send(message) {
+                    Ok(_) => {},
+                    Err(err) => {
+                        println!("[Notifier] sending feedback error: {:?}", err);
+                    },
                 }
             }
 
@@ -193,11 +188,14 @@ impl Inner {
             let mut need_feedback: bool = true;
             loop {
                 // If needed, send feedback based on listener being empty or not
-                if need_feedback {
+                if need_feedback && has_subscriber {
                     if listeners.len() > 0 {
-                        send_feedback(has_source, feedback_tx.clone(), FeedbackMessage::StartEvent(event.into()));
+
+                        // TODO: handle actual utxo addresse set
+
+                        send_feedback(send_subscriber.as_ref().unwrap().clone(), SubscribeMessage::StartEvent(event.into()));
                     } else {
-                        send_feedback(has_source, feedback_tx.clone(), FeedbackMessage::StopEvent(event.into()));
+                        send_feedback(send_subscriber.as_ref().unwrap().clone(), SubscribeMessage::StopEvent(event.into()));
                     }
                 }
                 let dispatch = dispatch_rx.recv().await.unwrap();
@@ -252,58 +250,6 @@ impl Inner {
 
             }
             dispatcher_is_running.store(false, Ordering::SeqCst);
-            shutdown_trigger.trigger();
-        });
-    }
-
-    /// Launch the feedback task
-    fn feedback_task(
-        &self,
-        shutdown_trigger: triggered::Trigger,
-        feedback_rx: Receiver<FeedbackMessage>)
-    {
-        let feedback_is_running = self.feedback_is_running.clone();
-        feedback_is_running.store(true, Ordering::SeqCst);
-        let has_source = self.has_source();
-        let source_notifier = self.source_notifier.clone();
-        let source_listener = self.source_listener.clone();
-
-        workflow_core::task::spawn(async move {
-            loop {
-                let feedback = feedback_rx.recv().await.unwrap();
-
-                match feedback {
-
-                    FeedbackMessage::StartEvent(ref notification_type) => {
-                        if has_source {
-                            match source_notifier.clone().unwrap().start_notify(source_listener.clone().unwrap().id, notification_type.clone()) {
-                                Ok(_) => (),
-                                Err(err) => {
-                                    println!("[Notifier] start notify error: {:?}", err);
-                                }
-                            }
-                        }
-                    },
-
-                    FeedbackMessage::StopEvent(ref notification_type) => {
-                        if has_source {
-                            match source_notifier.clone().unwrap().stop_notify(source_listener.clone().unwrap().id, notification_type.clone()) {
-                                Ok(_) => (),
-                                Err(err) => {
-                                    println!("[Notifier] start notify error: {:?}", err);
-                                }
-                            }
-                        }
-                    },
-
-                    FeedbackMessage::Shutdown => {
-                        break;
-                    },
-
-                }
-
-            }
-            feedback_is_running.store(false, Ordering::SeqCst);
             shutdown_trigger.trigger();
         });
     }
@@ -381,11 +327,6 @@ impl Inner {
         Ok(())
     }
 
-    fn try_send_feedback(self: Arc<Self>, msg: FeedbackMessage) -> Result<()> {
-        self.feedback_channel.sender().try_send(msg)?;
-        Ok(())
-    }
-
     async fn stop_dispatch(self: Arc<Self>) -> Result<()> {
         let mut result: Result<()> = Ok(());
         for event in EVENT_TYPE_ARRAY.clone().into_iter() {
@@ -403,24 +344,12 @@ impl Inner {
         result
     }
 
-    async fn stop_feedback(self: Arc<Self>) -> Result<()> {
-        let mut result: Result<()> = Ok(());
-            if self.feedback_is_running.load(Ordering::SeqCst) == true {
-                match self.clone().try_send_feedback(FeedbackMessage::Shutdown) {
-                    Ok(_) => {
-                        let mut feedback_shutdown_listener = self.feedback_shutdown_listener.lock().unwrap();
-                        let shutdown_listener = feedback_shutdown_listener.take().unwrap();
-                        shutdown_listener.await;
-                    },
-                    Err(err) => { result = Err(err) },
-                }
-            }
-        result
-    }
-
     async fn stop(self: Arc<Self>) -> Result<()> {
         self.clone().stop_dispatch().await?;
-        self.clone().stop_feedback().await
+        if let Some(ref subscriber) = self.subscriber.clone().as_ref() {
+            subscriber.clone().stop().await?;
+        }
+        Ok(())
     }
 
 }

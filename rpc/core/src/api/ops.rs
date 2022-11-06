@@ -31,11 +31,21 @@ pub enum RpcApiOps {
     EstimateNetworkHashesPerSecond,
     GetMempoolEntriesByAddresses,
     GetCoinSupply,
-    Notify,
+
+    // Subscription commands for starting/stopping notifications
+    NotifyBlockAdded,
+
+    // Server to client notification
+    Notification,
 }
 
 impl Into<u32> for RpcApiOps {
     fn into(self) -> u32 {
         self as u32
     }
+}
+
+pub enum SubscribeCommand {
+    Start = 0,
+    Stop = 1,
 }

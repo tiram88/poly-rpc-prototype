@@ -2,6 +2,9 @@ use std::{
     net::SocketAddr, pin::Pin, sync::Arc, io::ErrorKind,
 };
 use futures::Stream;
+use rpc_core::notify::subscriber::DynSubscriptionManager;
+use rpc_core::notify::subscriber::SubscriptionManager;
+use rpc_core::notify::subscriber::Subscriber;
 use rpc_core::{RpcResult};
 use rpc_core::notify::channel::NotificationChannel;
 use rpc_core::notify::listener::{ListenerID, ListenerReceiverSide, SendingChangedUtxo};
@@ -34,7 +37,6 @@ use super::{
         GrpcConnectionManager,
     },
 };
-
 
 /// A protowire RPC service.
 /// 
@@ -80,7 +82,9 @@ impl RpcService {
         let core_listener = Arc::new(core_service.register_new_listener(Some(core_channel.clone())));
     
         // Prepare internals
-        let notifier = Arc::new(Notifier::new(Some(core_service.clone().notifier()), Some(core_listener.clone()), SendingChangedUtxo::FilteredByAddress));
+        let subscription_manager: DynSubscriptionManager = core_service.notifier();
+        let subscriber = Subscriber::new(subscription_manager, core_listener.clone().id);
+        let notifier = Arc::new(Notifier::new(Some(subscriber), SendingChangedUtxo::FilteredByAddress));
         let collector = Arc::new(RpcCoreCollector::new(core_channel.receiver(), notifier.clone()));
         let connection_manager = Arc::new(RwLock::new(GrpcConnectionManager::new(notifier.clone())));
 
@@ -94,12 +98,10 @@ impl RpcService {
         }
     }
 
-    pub async fn start(&self) -> RpcResult<()> {
+    pub async fn start(&self) {
         // Start the internal notifier & collector
         self.notifier.clone().start();
-        self.collector.clone().start()?;
-
-        Ok(())
+        self.collector.clone().start();
     }
 
     pub async fn register_connection(&self, address: SocketAddr, sender: GrpcSender) -> ListenerID {
@@ -198,7 +200,7 @@ impl Rpc for RpcService {
                             },
                             
                             Some(Payload::NotifyBlockAddedRequest(_request)) => {
-                                NotifyBlockAddedResponseMessage::from(notifier.start_notify(listener_id, rpc_core::NotificationType::BlockAdded)).into()
+                                NotifyBlockAddedResponseMessage::from(notifier.clone().start_notify(listener_id, rpc_core::NotificationType::BlockAdded).await).into()
                             },
                 
                             // TODO: This must be replaced by actual handling of all request variants
