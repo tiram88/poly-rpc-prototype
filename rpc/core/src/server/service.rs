@@ -27,6 +27,23 @@ use super::collector::{
     ConsensusNotificationChannel
 };
 
+/// A service implementing the Rpc API at rpc_core level.
+/// 
+/// Collects notifications from the consensus and forwards them to 
+/// actual protocol-featured services. Thanks to the subscribtion pattern,
+/// notificaions are sent to the registered services only if the actually
+/// need them.
+/// 
+/// ### Implementation notes
+/// 
+/// This was designed to have a unique instance in the whole application,
+/// though multiple instances could coexist safely.
+/// 
+/// Any lower-level service providing an actual protocol, like gPRC should
+/// register into this instance in order to get notifications. The data flow 
+/// from this instance to registered services and backwards should occur 
+/// by adding respectively to the registered service a Collector and a
+/// Subscriber.
 #[derive(Debug)]
 pub struct RpcApi{
     notifier: Arc<Notifier>,

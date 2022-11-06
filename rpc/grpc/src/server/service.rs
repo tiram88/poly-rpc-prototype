@@ -65,6 +65,11 @@ use super::{
 /// - finalize
 /// 
 /// _Object is ready for being dropped. Any further usage of it is undefined behaviour._
+/// 
+/// #### Further development
+/// 
+/// TODO: implement a queue of requests and a pool of workers preparing and sending back the reponses.
+/// 
 pub struct RpcService {
     core_service: Arc<RpcApi>,
     core_channel: NotificationChannel,

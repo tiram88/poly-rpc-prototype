@@ -73,6 +73,22 @@ impl Pending {
 /// // | call --------------------------------------------------------------------------------->|
 /// //                                 | sender_task ----------->| receiver_task -------------->|
 /// ```
+/// 
+/// 
+/// #### Further development
+/// 
+/// TODO:
+/// 
+/// Carry any subscribe call result up to the initial RpcApiGrpc::start_notify execution.
+/// For now, RpcApiGrpc::start_notify only gets a result reflecting the call to
+/// Notifier::try_send_dispatch. This is not complete.
+/// 
+/// Design/flow:
+/// 
+/// Currently call is blocking until receiver_task or timeout_task do solve the pending.
+/// So actual concurrency must happen higher in the code.
+/// Is there a better way to handle the flow?
+/// 
 #[derive(Debug)]
 pub struct Resolver {
     _inner: RpcClient<Channel>,
@@ -135,6 +151,9 @@ impl Resolver {
         let (send_channel, recv) = mpsc::channel(2);
 
         // Force the opening of the stream when connected to a go kaspad server
+        //
+        // TODO: This wll also be useful to save here the actual capability of the server
+        // to handle request ids for req/resp matching.
         send_channel.send(GetInfoRequestMessage {}.into()).await?;
 
         // Internal channel
@@ -398,14 +417,14 @@ impl Resolver {
 #[async_trait]
 impl SubscriptionManager for Resolver {
     async fn start_notify(self: Arc<Self>, _: ListenerID, notification_type: NotificationType) -> RpcResult<()> {
-        // FIXME: Enhance protowire with Subscribe Commands
+        // FIXME: Enhance protowire with Subscribe Commands (handle Stop also)
         let request = kaspad_request::Payload::from_notification_type(&notification_type, SubscribeCommand::Start);
         self.clone().call((&request).into(), request).await?;
         Ok(())
     }
 
     async fn stop_notify(self: Arc<Self>, _: ListenerID, notification_type: NotificationType) -> RpcResult<()> {
-        // FIXME: Enhance protowire with Subscribe Commands
+        // FIXME: Enhance protowire with Subscribe Commands (handle Stop also)
         let request = kaspad_request::Payload::from_notification_type(&notification_type, SubscribeCommand::Stop);
         self.clone().call((&request).into(), request).await?;
         Ok(())
