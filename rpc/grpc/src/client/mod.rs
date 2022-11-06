@@ -9,12 +9,15 @@ use rpc_core::{
     RpcResult,
     notify::{
         channel::NotificationChannel,
+        collector::{
+            RpcCoreCollector, Collector,
+        },
         listener::{
             ListenerReceiverSide,
             ListenerID, SendingChangedUtxo
         },
-        notifier::Notifier, subscriber::Subscriber,
-        collector_from::RpcCoreCollector, collector::Collector,
+        notifier::Notifier,
+        subscriber::Subscriber,
     },
     NotificationType
 };

@@ -15,10 +15,12 @@ use tonic::{
 use rpc_core::{
     api::rpc::RpcApi as RpcApiT,
     notify::{
+        collector::{
+            Collector,
+            RpcCoreCollector,
+        },
         events::EVENT_TYPE_ARRAY,
         notifier::Notifier,
-        collector::Collector as CollectorT,
-        collector_from::RpcCoreCollector,
     },
     server::{
         service::RpcApi,

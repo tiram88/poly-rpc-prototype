@@ -31,7 +31,7 @@ use super::collector::{
 /// 
 /// Collects notifications from the consensus and forwards them to 
 /// actual protocol-featured services. Thanks to the subscribtion pattern,
-/// notificaions are sent to the registered services only if the actually
+/// notifications are sent to the registered services only if the actually
 /// need them.
 /// 
 /// ### Implementation notes

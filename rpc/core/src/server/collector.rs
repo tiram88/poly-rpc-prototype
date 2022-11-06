@@ -4,7 +4,7 @@ use consensus_core::stubs::{
 };
 use crate::notify::{
     channel::Channel,
-    collector_from::CollectorFrom,
+    collector::CollectorFrom,
 };
 
 pub(crate) type ConsensusCollector = CollectorFrom<ConsensusNotification>;
