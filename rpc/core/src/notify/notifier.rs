@@ -10,6 +10,7 @@ use super::{
         Channel,
         NotificationChannel
     },
+    collector::DynCollector,
     events::{
         EventArray,
         EventType,
@@ -43,16 +44,17 @@ pub struct Notifier {
 
 impl Notifier {
     pub fn new(
+        collector: Option<DynCollector>,
         subscriber: Option<Subscriber>,
         sending_changed_utxos: SendingChangedUtxo,
     ) -> Self {
         Self {
-            inner: Arc::new(Inner::new(subscriber, sending_changed_utxos)),
+            inner: Arc::new(Inner::new(collector, subscriber, sending_changed_utxos)),
         }
     }
 
-    pub fn start(&self) {
-        self.inner.clone().start();
+    pub fn start(self: Arc<Self>) {
+        self.inner.clone().start(self.clone());
     }
 
     pub fn register_new_listener(&self, channel: Option<NotificationChannel>) -> ListenerReceiverSide {
@@ -104,7 +106,8 @@ struct Inner {
     dispatcher_shutdown_listener: Arc<Mutex<EventArray<Option<triggered::Listener>>>>,
     dispatcher_is_running: EventArray<Arc<AtomicBool>>,
 
-    /// Subscriber
+    /// Collector & Subscriber
+    collector: Arc<Option<DynCollector>>,
     subscriber: Arc<Option<Arc<Subscriber>>>,
     
     /// How to handle UtxoChanged notifications
@@ -113,6 +116,7 @@ struct Inner {
 
 impl Inner {
     fn new(
+        collector: Option<DynCollector>,
         subscriber: Option<Subscriber>,
         sending_changed_utxos: SendingChangedUtxo,
     ) -> Self {
@@ -122,12 +126,13 @@ impl Inner {
             dispatcher_channel: EventArray::default(),
             dispatcher_shutdown_listener: Arc::new(Mutex::new(EventArray::default())),
             dispatcher_is_running: EventArray::default(),
+            collector: Arc::new(collector),
             subscriber: Arc::new(subscriber),
             sending_changed_utxos,
         }
     }
 
-    fn start(self: Arc<Self>) {
+    fn start(self: Arc<Self>, notifier: Arc<Notifier>) {
         if let Some(ref subscriber) = self.subscriber.clone().as_ref() {
             subscriber.clone().start();
         }
@@ -138,6 +143,9 @@ impl Inner {
                 dispatcher_shutdown_listener[event] = Some(shutdown_listener);
                 self.dispatch_task(event, shutdown_trigger, self.dispatcher_channel[event].receiver());
             }
+        }
+        if let Some(ref collector) = self.collector.clone().as_ref() {
+            collector.clone().start(notifier.clone());
         }
     }
 
@@ -345,6 +353,9 @@ impl Inner {
     }
 
     async fn stop(self: Arc<Self>) -> Result<()> {
+        if let Some(ref collector) = self.collector.clone().as_ref() {
+            collector.clone().stop().await?;
+        }
         self.clone().stop_dispatch().await?;
         if let Some(ref subscriber) = self.subscriber.clone().as_ref() {
             subscriber.clone().stop().await?;

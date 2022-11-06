@@ -15,10 +15,7 @@ use tonic::{
 use rpc_core::{
     api::rpc::RpcApi as RpcApiT,
     notify::{
-        collector::{
-            Collector,
-            RpcCoreCollector,
-        },
+        collector::RpcCoreCollector,
         events::EVENT_TYPE_ARRAY,
         notifier::Notifier,
     },
@@ -78,7 +75,6 @@ pub struct RpcService {
     core_listener: Arc<ListenerReceiverSide>,
     connection_manager: Arc<RwLock<GrpcConnectionManager>>,
     notifier: Arc<Notifier>,
-    collector: Arc<RpcCoreCollector>,
 }
 
 impl RpcService {
@@ -89,10 +85,10 @@ impl RpcService {
         let core_listener = Arc::new(core_service.register_new_listener(Some(core_channel.clone())));
     
         // Prepare internals
+        let collector = Arc::new(RpcCoreCollector::new(core_channel.receiver()));
         let subscription_manager: DynSubscriptionManager = core_service.notifier();
         let subscriber = Subscriber::new(subscription_manager, core_listener.clone().id);
-        let notifier = Arc::new(Notifier::new(Some(subscriber), SendingChangedUtxo::FilteredByAddress));
-        let collector = Arc::new(RpcCoreCollector::new(core_channel.receiver(), notifier.clone()));
+        let notifier = Arc::new(Notifier::new(Some(collector), Some(subscriber), SendingChangedUtxo::FilteredByAddress));
         let connection_manager = Arc::new(RwLock::new(GrpcConnectionManager::new(notifier.clone())));
 
         Self {
@@ -101,14 +97,12 @@ impl RpcService {
             core_listener,
             connection_manager,
             notifier,
-            collector,
         }
     }
 
     pub async fn start(&self) {
-        // Start the internal notifier & collector
+        // Start the internal notifier
         self.notifier.clone().start();
-        self.collector.clone().start();
     }
 
     pub async fn register_connection(&self, address: SocketAddr, sender: GrpcSender) -> ListenerID {
@@ -127,8 +121,7 @@ impl RpcService {
             self.core_service.stop_notify(listener_id, event.into()).await?;
         }
 
-        // Stop the internal notifier & collector
-        self.collector.clone().stop().await?;
+        // Stop the internal notifier
         self.notifier.clone().stop().await?;
 
         Ok(())

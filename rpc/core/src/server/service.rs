@@ -11,7 +11,6 @@ use crate::{
             Channel,
             NotificationChannel
         },
-        collector::{Collector as CollecterT},
         listener::{
             ListenerReceiverSide,
             ListenerID, SendingChangedUtxo
@@ -47,33 +46,29 @@ use super::collector::{
 #[derive(Debug)]
 pub struct RpcApi{
     notifier: Arc<Notifier>,
-    collector: Arc<ConsensusCollector>,
 }
 
 impl RpcApi {
     pub fn new() -> Arc<Self> {
 
-        // FIXME: Some consensus-compatible subscriber could be provided here
-        let notifier = Arc::new(Notifier::new(None, SendingChangedUtxo::All));
-
         // FIXME: the channel receiver should be obtained by registering to a consensus notification service
         let consensus_notifications: ConsensusNotificationChannel = Channel::default();
 
-        let collector = Arc::new(ConsensusCollector::new(consensus_notifications.receiver(), notifier.clone()));
+        let collector = Arc::new(ConsensusCollector::new(consensus_notifications.receiver()));
+
+        // FIXME: Some consensus-compatible subscriber could be provided here
+        let notifier = Arc::new(Notifier::new(Some(collector), None, SendingChangedUtxo::All));
 
         Arc::new(Self {
             notifier,
-            collector,
         })
     }
 
     pub fn start(&self) {
         self.notifier.clone().start();
-        self.collector.clone().start();
     }
 
     pub async fn stop(&self) -> RpcResult<()> {
-        self.collector.clone().stop().await?;
         self.notifier.clone().stop().await?;
         Ok(())
     }

@@ -1,3 +1,4 @@
+use core::fmt::Debug;
 use std::sync::{Arc};
 use std::sync::atomic::{AtomicBool, Ordering};
 use async_std::channel::{
@@ -29,10 +30,12 @@ pub type CollectorNotificationReceiver<T> = Receiver<Arc<T>>;
 
 
 #[async_trait]
-pub trait Collector {
-    fn start(self: Arc<Self>);
+pub trait Collector: Send + Sync + Debug {
+    fn start(self: Arc<Self>, notifier: Arc<Notifier>);
     async fn stop(self: Arc<Self>) -> Result<()>;
 }
+
+pub type DynCollector = Arc<dyn Collector>;
 
 /// A newtype allowing conversion from Arc<T> to Arc<Notification>.
 /// See [`super::collector::CollectorFrom`]
@@ -55,7 +58,6 @@ where
     T: Send + Sync + 'static + Sized,
 {
     recv_channel: CollectorNotificationReceiver<T>,
-    notifier: Arc<Notifier>,
     collect_shutdown: Arc<DuplexTrigger>,
     collect_is_running: Arc<AtomicBool>,
 }
@@ -67,21 +69,18 @@ where
 {
     pub fn new(
         recv_channel: CollectorNotificationReceiver<T>,
-        notifier: Arc<Notifier>,
     ) -> Self {
         Self {
             recv_channel,
-            notifier,
             collect_shutdown: Arc::new(DuplexTrigger::new()),
             collect_is_running: Arc::new(AtomicBool::new(false)),
         }
     }
 
-    fn collect_task(&self) {
+    fn collect_task(&self, notifier: Arc<Notifier>) {
         let collect_shutdown = self.collect_shutdown.clone();
         let collect_is_running = self.collect_is_running.clone();
         let recv_channel = self.recv_channel.clone();
-        let notifier = self.notifier.clone();
         collect_is_running.store(true, Ordering::SeqCst);
 
         workflow_core::task::spawn(async move {
@@ -134,11 +133,11 @@ where
 #[async_trait]
 impl<T> collector::Collector for CollectorFrom<T>
 where
-    T: Send + Sync + 'static + Sized,
+    T: Send + Sync + 'static + Sized + Debug,
     ArcConvert<T>: Into<Arc<Notification>>,
 {
-    fn start(self: Arc<Self>) {
-        self.collect_task();
+    fn start(self: Arc<Self>, notifier: Arc<Notifier>) {
+        self.collect_task(notifier);
     }
 
     async fn stop(self: Arc<Self>) -> Result<()> {
