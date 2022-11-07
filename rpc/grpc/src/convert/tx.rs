@@ -34,7 +34,7 @@ impl From<&rpc_core::RpcTransactionInput> for protowire::RpcTransactionInput {
             signature_script: item.signature_script.to_string(),
             sequence: item.sequence,
             sig_op_count: item.sig_op_count,
-            verbose_data: Some((&item.verbose_data).into()),
+            verbose_data: item.verbose_data.as_ref().map(|x| x.into()),
         }
     }
 }
@@ -147,8 +147,8 @@ impl TryFrom<&protowire::RpcTransactionInput> for rpc_core::RpcTransactionInput 
                 sig_op_count: item.sig_op_count,
             verbose_data: item.verbose_data
                 .as_ref()
-                .ok_or(RpcError::MissingRpcFieldError("RpcTransactionInput".to_string(), "verbose_data".to_string()))?
-                .try_into()?,
+                .map(|x| rpc_core::RpcTransactionInputVerboseData::try_from(x))
+                .transpose()?,
         })
     }
 }
@@ -229,7 +229,7 @@ impl TryFrom<&protowire::RpcTransactionOutputVerboseData> for rpc_core::RpcTrans
     type Error = RpcError;
     fn try_from(item: &protowire::RpcTransactionOutputVerboseData) -> RpcResult<Self> {
         Ok(Self {
-            script_public_key_type: item.script_public_key_type.parse()?,
+            script_public_key_type: item.script_public_key_type.as_str().try_into()?,
             script_public_key_address: item.script_public_key_address.clone(),
         })
     }

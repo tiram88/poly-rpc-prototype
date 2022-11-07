@@ -7,7 +7,7 @@ use borsh::{BorshSerialize, BorshDeserialize, BorshSchema};
 use serde::{Serialize, Deserialize};
 use consensus_core::BlueWorkType;
 
-use crate::errors;
+use crate::RpcError;
 
 
 #[repr(transparent)]
@@ -40,22 +40,24 @@ impl From<RpcBlueWorkType> for String {
 }
 
 impl FromStr for RpcBlueWorkType {
-    type Err = errors::RpcError;
+    type Err = RpcError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(RpcBlueWorkType(u128::from_str_radix(s, 16)?))
+        Ok(RpcBlueWorkType(
+            u128::from_str_radix(s, 16).map_err(|err|RpcError::RpcBlueWorkTypeParseError(err))?
+        ))
     }
 }
 
 impl TryFrom<&str> for RpcBlueWorkType {
-    type Error = errors::RpcError;
+    type Error = RpcError;
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         value.parse()
     }
 }
 
 impl TryFrom<String> for RpcBlueWorkType {
-    type Error = errors::RpcError;
+    type Error = RpcError;
     fn try_from(value: String) -> Result<Self, Self::Error> {
         value.parse()
     }
@@ -91,5 +93,10 @@ mod tests {
 
         let rbw2 = rbw;
         assert_eq!(rbw, rbw2);
+    }
+
+    #[test]
+    fn test_rpc_blue_work_from_str() {
+        assert!(RpcBlueWorkType::from_str("40a593f53f695ba413").is_ok());
     }
 }

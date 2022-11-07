@@ -2,12 +2,12 @@ use serde::{Deserialize, Serialize};
 use borsh::{BorshSerialize, BorshDeserialize, BorshSchema};
 use consensus_core::tx::TransactionId;
 
-pub type RpcTransactionId = TransactionId;
-pub type RpcScriptClass = u8;
-
 use crate::prelude::{
-    RpcSubnetworkId, RpcHash, RpcHexData,
+    RpcSubnetworkId, RpcHash, RpcHexData, RpcScriptClass,
 };
+
+pub type RpcTransactionId = TransactionId;
+
 
 #[derive(Clone, Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
 #[serde(rename_all = "camelCase")]
@@ -29,7 +29,7 @@ pub struct RpcTransactionInput  {
     pub signature_script: RpcHexData,
     pub sequence: u64,
     pub sig_op_count: u32,
-    pub verbose_data: RpcTransactionInputVerboseData,
+    pub verbose_data: Option<RpcTransactionInputVerboseData>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
@@ -82,7 +82,7 @@ pub struct RpcTransactionInputVerboseData {
 #[serde(rename_all = "camelCase")]
 pub struct RpcTransactionOutputVerboseData {
     pub script_public_key_type: RpcScriptClass,
-    pub script_public_key_address: String, // FIXME ? (we might keep a string here)
+    pub script_public_key_address: String, // FIXME ? (investigate /crpyto/addresses/src/lib.rs)
 }
 
 // #[derive(Clone, Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
