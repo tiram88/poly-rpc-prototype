@@ -66,6 +66,7 @@ impl Notifier {
     }
 
     pub fn start_notify(&self, id: ListenerID, notification_type: NotificationType) -> Result<()> {
+        println!("[Notifier] start sending to listener {0} notifications of type {1:?}", id, notification_type);
         self.inner.clone().start_notify(id, notification_type)
     }
 
@@ -74,6 +75,7 @@ impl Notifier {
     }
 
     pub fn stop_notify(&self, id: ListenerID, notification_type: NotificationType) -> Result<()> {
+        println!("[Notifier] stop sending to listener {0} notifications of type {1:?}", id, notification_type);
         self.inner.clone().stop_notify(id, notification_type)
     }
 
@@ -86,11 +88,13 @@ impl Notifier {
 #[async_trait]
 impl SubscriptionManager for Notifier {
     async fn start_notify(self: Arc<Self>, id: ListenerID, notification_type: NotificationType) -> RpcResult<()> {
+        println!("[Notifier] as subscription manager start sending to listener {0} notifications of type {1:?}", id, notification_type);
         self.inner.clone().start_notify(id, notification_type)?;
         Ok(())
     }
 
     async fn stop_notify(self: Arc<Self>, id: ListenerID, notification_type: NotificationType) -> RpcResult<()> {
+        println!("[Notifier] as subscription manager stop sending to listener {0} notifications of type {1:?}", id, notification_type);
         self.inner.clone().stop_notify(id, notification_type)?;
         Ok(())
     }
@@ -179,31 +183,33 @@ impl Inner {
         // This is necessary for the correct handling of repeating start/stop cycles.
         
         workflow_core::task::spawn(async move {
+            println!("[Notifier] dispatch_task spawned");
             
-            fn send_feedback(feedback_tx: Sender<SubscribeMessage>, message: SubscribeMessage) {
-                match feedback_tx.try_send(message) {
+            fn send_subscribe_message(send_subscriber: Sender<SubscribeMessage>, message: SubscribeMessage) {
+                println!("[Notifier] dispatch_task send subscribe message: {:?}", message);
+                match send_subscriber.try_send(message) {
                     Ok(_) => {},
                     Err(err) => {
-                        println!("[Notifier] sending feedback error: {:?}", err);
+                        println!("[Notifier] sending subscribe message error: {:?}", err);
                     },
                 }
             }
 
-            // We will send feedback for all dispatch messages if event is a filtered UtxosChanged.
-            // Otherwise, feedback is only sent when needed when applying the dispatched message.
+            // We will send subscribe messages for all dispatch messages if event is a filtered UtxosChanged.
+            // Otherwise, subscribe message is only sent when needed by the execution of the dispatche message.
             let report_all_changes = event == EventType::UtxosChanged && sending_changed_utxos == SendingChangedUtxo::FilteredByAddress;
 
-            let mut need_feedback: bool = true;
+            let mut need_subscribe: bool = false;
             loop {
-                // If needed, send feedback based on listener being empty or not
-                if need_feedback && has_subscriber {
+                // If needed, send subscribe message based on listeners map being empty or not
+                if need_subscribe && has_subscriber {
                     if listeners.len() > 0 {
 
                         // TODO: handle actual utxo addresse set
 
-                        send_feedback(send_subscriber.as_ref().unwrap().clone(), SubscribeMessage::StartEvent(event.into()));
+                        send_subscribe_message(send_subscriber.as_ref().unwrap().clone(), SubscribeMessage::StartEvent(event.into()));
                     } else {
-                        send_feedback(send_subscriber.as_ref().unwrap().clone(), SubscribeMessage::StopEvent(event.into()));
+                        send_subscribe_message(send_subscriber.as_ref().unwrap().clone(), SubscribeMessage::StopEvent(event.into()));
                     }
                 }
                 let dispatch = dispatch_rx.recv().await.unwrap();
@@ -226,8 +232,8 @@ impl Inner {
                             }
                         }
 
-                        // Feedback needed if purge does empty listeners or if reporting any change
-                        need_feedback = (purge.len() == listeners.len()) || report_all_changes;
+                        // Feedback needed if purge will empty listeners or if reporting any change
+                        need_subscribe = (purge.len() > 0 && (purge.len() == listeners.len())) || report_all_changes;
 
                         // Remove closed listeners
                         for id in purge {
@@ -236,18 +242,19 @@ impl Inner {
                     },
 
                     DispatchMessage::AddListener(id, listener) => {
+                        // Subscription needed if a first listener is added or if reporting any change
+                        need_subscribe = listeners.len() == 0 || report_all_changes;
+
                         // We don't care whether this is an insertion or a replacement
                         listeners.insert(id, listener.clone());
 
-                        // Feedback needed if a first listener was added or if reporting any change
-                        need_feedback = listeners.len() == 1 || report_all_changes;
                     },
 
                     DispatchMessage::RemoveListener(id) => {
                         listeners.remove(&id);
 
                         // Feedback needed if no more listeners are present or if reporting any change
-                        need_feedback = listeners.len() == 0 || report_all_changes;
+                        need_subscribe = listeners.len() == 0 || report_all_changes;
                     },
 
                     DispatchMessage::Shutdown => {

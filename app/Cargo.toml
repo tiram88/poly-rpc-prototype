@@ -22,6 +22,7 @@ path="./src/client.rs"
 hashes.workspace = true
 rpc-grpc.workspace = true
 rpc-core.workspace = true
+consensus.workspace = true
 consensus-core.workspace = true
 tonic.workspace = true
 futures = { version = "0.3", default-features = false, features = ["alloc"] }

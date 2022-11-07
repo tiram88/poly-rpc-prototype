@@ -68,7 +68,6 @@ use super::{
 /// #### Further development
 /// 
 /// TODO: implement a queue of requests and a pool of workers preparing and sending back the reponses.
-/// 
 pub struct RpcService {
     core_service: Arc<RpcApi>,
     core_channel: NotificationChannel,
@@ -100,7 +99,7 @@ impl RpcService {
         }
     }
 
-    pub async fn start(&self) {
+    pub fn start(&self) {
         // Start the internal notifier
         self.notifier.clone().start();
     }

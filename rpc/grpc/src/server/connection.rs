@@ -21,7 +21,7 @@ pub type GrpcSender = mpsc::Sender<StatusResult<KaspadResponse>>;
 pub(crate) struct GrpcConnection {
     _address: SocketAddr,
     sender: GrpcSender,
-    nofity_listener: ListenerReceiverSide,
+    notifiy_listener: ListenerReceiverSide,
     collect_shutdown: Arc<DuplexTrigger>,
     collect_is_running: Arc<AtomicBool>,
 }
@@ -30,12 +30,12 @@ impl GrpcConnection {
     pub(crate) fn new (
         address: SocketAddr,
         sender: GrpcSender,
-        nofity_listener: ListenerReceiverSide
+        notifiy_listener: ListenerReceiverSide
     ) -> Self {
         Self {
             _address: address,
             sender,
-            nofity_listener,
+            notifiy_listener,
             collect_shutdown: Arc::new(DuplexTrigger::new()),
             collect_is_running: Arc::new(AtomicBool::new(false)),
         }
@@ -60,14 +60,15 @@ impl GrpcConnection {
     }
     
     fn collect_task(&self) {
+        let listener_id = self.notifiy_listener.id;
         let sender = self.sender.clone();
         let collect_shutdown = self.collect_shutdown.clone();
         let collect_is_running = self.collect_is_running.clone();
-        let recv_channel = self.nofity_listener.recv_channel.clone();
+        let recv_channel = self.notifiy_listener.recv_channel.clone();
         collect_is_running.store(true, Ordering::SeqCst);
 
         tokio::task::spawn(async move {
-
+            println!("[GrpcConnection] collect_task listener id {0}: start", listener_id);
             loop {
 
                 let shutdown = collect_shutdown.request.listener.clone();
@@ -78,6 +79,7 @@ impl GrpcConnection {
                     notification = recv_channel.recv() => {
                         match notification {
                             Ok(notification) => {
+                                println!("[GrpcConnection] collect_task listener id {0}: notification", listener_id);
                                 match sender.send(Ok((&*notification).into())).await {
                                     Ok(_) => (),
                                     Err(err) => {
@@ -95,6 +97,7 @@ impl GrpcConnection {
             }
             collect_is_running.store(false, Ordering::SeqCst);
             collect_shutdown.response.trigger.trigger();
+            println!("[GrpcConnection] collect_task listener id {0}: stop", listener_id);
         });
         
 
@@ -125,12 +128,13 @@ impl GrpcConnectionManager {
     }
 
     pub(crate) async fn register(&mut self, address: SocketAddr, sender: GrpcSender) -> ListenerID {
-        println!("register a new gRPC connection from: {}", address);
         let notifiy_listener = self.notifier.clone().register_new_listener(None);
+        println!("register a new gRPC connection from: {0} with listener id {1}", address, notifiy_listener.id);
         let connection = Arc::new(GrpcConnection::new(
             address,
             sender,
-            notifiy_listener));
+            notifiy_listener
+        ));
         match self.connections.insert(address.clone(), connection.clone()) {
             Some(_prev) => {
                 //prev.sender.closed().await
@@ -138,7 +142,7 @@ impl GrpcConnectionManager {
             None => {}
         }
         connection.clone().start();
-        connection.nofity_listener.id
+        connection.notifiy_listener.id
     }
 
     pub(crate) async fn unregister(&mut self, address: SocketAddr) {

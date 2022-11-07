@@ -18,7 +18,7 @@ use rpc_core::{
     Notification,
     notify::{
         subscriber::SubscriptionManager,
-        listener::ListenerID,
+        listener::ListenerID, events::EventType,
     },
     utils::triggers::DuplexTrigger,
     NotificationType,
@@ -34,6 +34,8 @@ use matcher::*;
 mod matcher;
 
 pub type SenderResponse = tokio::sync::oneshot::Sender<Result<KaspadResponse>>;
+
+//pub(crate) type RequestID = u64;
 
 #[derive(Debug)]
 struct Pending {
@@ -92,6 +94,7 @@ impl Pending {
 #[derive(Debug)]
 pub struct Resolver {
     _inner: RpcClient<Channel>,
+    handle_stop_notify: bool,
 
     // Pushing incoming notifications forward
     notify_channel: NotificationSender,
@@ -121,6 +124,7 @@ impl Resolver {
     ) -> Self {
         Self {
             _inner: client,
+            handle_stop_notify: false,
             notify_channel,
             send_channel,
             pending_calls: Arc::new(Mutex::new(VecDeque::new())),
@@ -335,16 +339,25 @@ impl Resolver {
 
     #[allow(unused_must_use)]
     fn handle_response(&self, response: KaspadResponse) {
-        println!("resolver handle_response: {:?}", response);
         if response.is_notification() {
-            if let Ok(notification) = Notification::try_from(&response) {
+            println!("[Resolver] handle_response received a notification");
+            match Notification::try_from(&response) {
+                Ok(notification) => {
 
-                // Here we ignore any returned error
-                self.notify_channel.try_send(Arc::new(notification));
+                    let event: EventType = (&notification).into();
+                    println!("[Resolver] handle_response received notification: {:?}", event);
+
+                    // Here we ignore any returned error
+                    self.notify_channel.try_send(Arc::new(notification));
                 
+                },
+                Err(err) => {
+                    println!("[Resolver] handle_response error converting reponse into notification: {:?}", err);
+                }
             }
         } else if response.payload.is_some() {
             let response_op: RpcApiOps = response.payload.as_ref().unwrap().into();
+            println!("[Resolver] handle_response type: {:?}", response_op);
             let mut pending_calls = self.pending_calls.lock().unwrap();
             let mut pending: Option<Pending> = None;
             if pending_calls.front().is_some() {
@@ -363,6 +376,8 @@ impl Resolver {
             }
             drop(pending_calls);
             if let Some(pending) = pending {
+
+                println!("[Resolver] handle_response matching request found: {:?}", pending.request);
 
                 // This attribute doesn't seem to work at expression level
                 // So it is duplicated at fn level
@@ -417,7 +432,8 @@ impl Resolver {
 #[async_trait]
 impl SubscriptionManager for Resolver {
     async fn start_notify(self: Arc<Self>, _: ListenerID, notification_type: NotificationType) -> RpcResult<()> {
-        // FIXME: Enhance protowire with Subscribe Commands (handle Stop also)
+        println!("[Resolver] start_notify: {:?}", notification_type);
+        // FIXME: Enhance protowire with Subscribe Commands (handle explicit Start)
         let request = kaspad_request::Payload::from_notification_type(&notification_type, SubscribeCommand::Start);
         self.clone().call((&request).into(), request).await?;
         Ok(())
@@ -425,8 +441,13 @@ impl SubscriptionManager for Resolver {
 
     async fn stop_notify(self: Arc<Self>, _: ListenerID, notification_type: NotificationType) -> RpcResult<()> {
         // FIXME: Enhance protowire with Subscribe Commands (handle Stop also)
-        let request = kaspad_request::Payload::from_notification_type(&notification_type, SubscribeCommand::Stop);
-        self.clone().call((&request).into(), request).await?;
+        if self.handle_stop_notify {
+            println!("[Resolver] stop_notify: {:?}", notification_type);
+            let request = kaspad_request::Payload::from_notification_type(&notification_type, SubscribeCommand::Stop);
+            self.clone().call((&request).into(), request).await?;
+        } else {
+            println!("[Resolver] stop_notify ignored because not supported by server: {:?}", notification_type);
+        }
         Ok(())
     }
 }

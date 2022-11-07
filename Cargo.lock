@@ -49,6 +49,7 @@ version = "0.1.0"
 dependencies = [
  "async-stream 0.2.1",
  "clap 4.0.18",
+ "consensus",
  "consensus-core",
  "futures",
  "futures-core",
@@ -633,7 +634,21 @@ dependencies = [
 name = "consensus"
 version = "0.1.0"
 dependencies = [
+ "ahash 0.8.0",
+ "async-std",
+ "async-trait",
+ "borsh",
+ "consensus-core",
+ "derive_more",
+ "faster-hex",
+ "futures",
+ "hashes",
+ "rand 0.8.5",
+ "serde",
+ "thiserror",
  "tokio",
+ "triggered",
+ "workflow-core",
 ]
 
 [[package]]

@@ -64,7 +64,7 @@ where
 
 impl<T> CollectorFrom<T>
 where
-    T: Send + Sync + 'static + Sized,
+    T: Send + Sync + 'static + Sized + Debug,
     ArcConvert<T>: Into<Arc<Notification>>,
 {
     pub fn new(
@@ -84,6 +84,7 @@ where
         collect_is_running.store(true, Ordering::SeqCst);
 
         workflow_core::task::spawn(async move {
+            println!("[Collector] collect_task start");
 
             let shutdown = collect_shutdown.request.listener.clone().fuse();
             pin_mut!(shutdown);
@@ -98,14 +99,19 @@ where
                     notification = notifications.next().fuse() => {
                         match notification {
                             Some(msg) => {
-                                match notifier.clone().notifiy(ArcConvert::from(msg.clone()).into()) {
+                                let rpc_notification: Arc<Notification> = ArcConvert::from(msg.clone()).into();
+                                //let notification_type: crate::NotificationType = (&*rpc_notification).into();
+                                //println!("[Collector] collect_task received {:?}", notification_type);
+                                match notifier.clone().notifiy(rpc_notification) {
                                     Ok(_) => (),
                                     Err(err) => {
-                                        println!("[CollectorSingleConver] notification sender error: {:?}", err);
+                                        println!("[Collector] notification sender error: {:?}", err);
                                     },
                                 }
                             },
-                            None => {}
+                            None => {
+                                println!("[Collector] notifications returned None. This should never happen");
+                            }
                         }
                     }
                 }
@@ -113,6 +119,7 @@ where
             }
             collect_is_running.store(false, Ordering::SeqCst);
             collect_shutdown.response.trigger.trigger();
+            println!("[Collector] collect_task end");
         });
 
     }

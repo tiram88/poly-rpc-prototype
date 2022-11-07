@@ -8,3 +8,17 @@ license.workspace = true
 
 [dependencies]
 tokio.workspace = true
+consensus-core.workspace = true
+hashes.workspace = true
+faster-hex.workspace = true
+serde.workspace = true
+derive_more.workspace = true
+thiserror.workspace = true
+borsh.workspace = true
+triggered.workspace = true
+async-trait = "0.1.57"
+async-std = { version = "1.12.0", features = ['attributes'] }
+ahash = "0.8.0"
+futures = { version = "0.3" }
+rand = "0.8"
+workflow-core = "0.1.0"

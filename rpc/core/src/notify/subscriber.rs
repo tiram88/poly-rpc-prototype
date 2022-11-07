@@ -32,9 +32,9 @@ pub struct Subscriber {
     listener_id: ListenerID,
 
     /// Feedback channel
-    feedback_channel: Channel<SubscribeMessage>,
-    feedback_shutdown_listener: Arc<Mutex<Option<triggered::Listener>>>,
-    feedback_is_running: Arc<AtomicBool>,
+    subscribe_channel: Channel<SubscribeMessage>,
+    subscribe_shutdown_listener: Arc<Mutex<Option<triggered::Listener>>>,
+    subscribe_is_running: Arc<AtomicBool>,
 }
 
 impl Subscriber {
@@ -45,33 +45,33 @@ impl Subscriber {
         Self {
             subscription_manager,
             listener_id,
-            feedback_channel: Channel::default(),
-            feedback_shutdown_listener: Arc::new(Mutex::new(None)),
-            feedback_is_running: Arc::new(AtomicBool::default()),
+            subscribe_channel: Channel::default(),
+            subscribe_shutdown_listener: Arc::new(Mutex::new(None)),
+            subscribe_is_running: Arc::new(AtomicBool::default()),
         }
     }
 
     pub(crate) fn sender(&self) -> Sender<SubscribeMessage> {
-        self.feedback_channel.sender()
+        self.subscribe_channel.sender()
     }
 
     pub fn start(self: Arc<Self>) {
-        if self.clone().feedback_is_running.load(Ordering::SeqCst) != true {
+        if self.clone().subscribe_is_running.load(Ordering::SeqCst) != true {
             let (shutdown_trigger, shutdown_listener) = triggered::trigger();
-            let mut feedback_shutdown_listener = self.feedback_shutdown_listener.lock().unwrap();
-            *feedback_shutdown_listener = Some(shutdown_listener);
-            self.feedback_task(shutdown_trigger, self.feedback_channel.receiver());
+            let mut subscribe_shutdown_listener = self.subscribe_shutdown_listener.lock().unwrap();
+            *subscribe_shutdown_listener = Some(shutdown_listener);
+            self.subscribe_task(shutdown_trigger, self.subscribe_channel.receiver());
         }
     }
 
-    /// Launch the feedback task
-    fn feedback_task(
+    /// Launch the subscribe task
+    fn subscribe_task(
         &self,
         shutdown_trigger: triggered::Trigger,
-        feedback_rx: Receiver<SubscribeMessage>)
+        subscribe_rx: Receiver<SubscribeMessage>)
     {
-        let feedback_is_running = self.feedback_is_running.clone();
-        feedback_is_running.store(true, Ordering::SeqCst);
+        let subscribe_is_running = self.subscribe_is_running.clone();
+        subscribe_is_running.store(true, Ordering::SeqCst);
         let subscription_manager = self.subscription_manager.clone();
         // let listener = self.listener.clone();
         let listener_id = self.listener_id;
@@ -79,9 +79,9 @@ impl Subscriber {
 
         workflow_core::task::spawn(async move {
             loop {
-                let feedback = feedback_rx.recv().await.unwrap();
+                let subscribe = subscribe_rx.recv().await.unwrap();
 
-                match feedback {
+                match subscribe {
 
                     SubscribeMessage::StartEvent(ref notification_type) => {
                         match subscription_manager.clone().start_notify(listener_id, notification_type.clone()).await {
@@ -108,23 +108,23 @@ impl Subscriber {
                 }
 
             }
-            feedback_is_running.store(false, Ordering::SeqCst);
+            subscribe_is_running.store(false, Ordering::SeqCst);
             shutdown_trigger.trigger();
         });
     }
 
-    fn try_send_feedback(self: Arc<Self>, msg: SubscribeMessage) -> Result<()> {
-        self.feedback_channel.sender().try_send(msg)?;
+    fn try_send_subscribe(self: Arc<Self>, msg: SubscribeMessage) -> Result<()> {
+        self.subscribe_channel.sender().try_send(msg)?;
         Ok(())
     }
 
-    async fn stop_feedback(self: Arc<Self>) -> Result<()> {
+    async fn stop_subscribe(self: Arc<Self>) -> Result<()> {
         let mut result: Result<()> = Ok(());
-            if self.feedback_is_running.load(Ordering::SeqCst) == true {
-                match self.clone().try_send_feedback(SubscribeMessage::Shutdown) {
+            if self.subscribe_is_running.load(Ordering::SeqCst) == true {
+                match self.clone().try_send_subscribe(SubscribeMessage::Shutdown) {
                     Ok(_) => {
-                        let mut feedback_shutdown_listener = self.feedback_shutdown_listener.lock().unwrap();
-                        let shutdown_listener = feedback_shutdown_listener.take().unwrap();
+                        let mut subscribe_shutdown_listener = self.subscribe_shutdown_listener.lock().unwrap();
+                        let shutdown_listener = subscribe_shutdown_listener.take().unwrap();
                         shutdown_listener.await;
                     },
                     Err(err) => { result = Err(err) },
@@ -134,7 +134,7 @@ impl Subscriber {
     }
 
     pub async fn stop(self: Arc<Self>) -> Result<()> {
-        self.clone().stop_feedback().await
+        self.clone().stop_subscribe().await
     }
 
 }

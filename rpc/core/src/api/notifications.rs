@@ -19,6 +19,22 @@ pub enum NotificationType {
     
 }
 
+impl From<&Notification> for NotificationType {
+    fn from(item: &Notification) -> Self {
+        match item {
+            Notification::BlockAdded(_) => NotificationType::BlockAdded,
+            Notification::VirtualSelectedParentChainChanged(_) => NotificationType::VirtualSelectedParentChainChanged,
+            Notification::FinalityConflict(_) => NotificationType::FinalityConflicts,
+            Notification::FinalityConflictResolved(_) => NotificationType::FinalityConflictResolved,
+            Notification::UtxosChanged(_) => NotificationType::UtxosChanged(vec![]),
+            Notification::VirtualSelectedParentBlueScoreChanged(_) => NotificationType::VirtualSelectedParentBlueScoreChanged,
+            Notification::VirtualDaaScoreChanged(_) => NotificationType::VirtualDaaScoreChanged,
+            Notification::PruningPointUTXOSetOverride(_) => NotificationType::PruningPointUTXOSetOverride,
+            Notification::NewBlockTemplate(_) => NotificationType::NewBlockTemplate,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
 pub enum Notification {
     BlockAdded(BlockAddedNotification),

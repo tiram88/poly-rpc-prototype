@@ -16,6 +16,12 @@ pub struct RpcHexData(Vec<u8>);
 
 impl fmt::Display for RpcHexData {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+
+        // an empty vector is allowed
+        if self.0.is_empty() {
+            return f.write_str("");
+        }
+        
         let mut hex = vec![0u8; self.0.len() * 2];
         faster_hex::hex_encode(&self.0, &mut hex.as_mut_slice()).expect("The output is exactly twice the size of the input");
         f.write_str(str::from_utf8(&hex).expect("hex is always valid UTF-8"))
@@ -38,6 +44,12 @@ impl FromStr for RpcHexData {
     type Err = errors::RpcError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+
+        // an empty string is allowed
+        if s.is_empty() {
+            return Ok(RpcHexData(vec![]));
+        }
+
         let mut bytes = vec![0u8; s.len()/2];
         faster_hex::hex_decode(s.as_bytes(), bytes.as_mut_slice())?;
         Ok(RpcHexData(bytes))

@@ -19,16 +19,19 @@ impl kaspad_request::Payload {
     // FIXME: Enhance protowire with Subscribe Commands
     pub fn from_notification_type(notification_type: &NotificationType, _command: SubscribeCommand) -> Self {
         match notification_type {
-            NotificationType::BlockAdded =>
-            kaspad_request::Payload::NotifyBlockAddedRequest(NotifyBlockAddedRequestMessage{}),
-            NotificationType::VirtualSelectedParentChainChanged => todo!(),
-            NotificationType::FinalityConflicts => todo!(),
-            NotificationType::FinalityConflictResolved => todo!(),
-            NotificationType::UtxosChanged(_) => todo!(),
-            NotificationType::VirtualSelectedParentBlueScoreChanged => todo!(),
-            NotificationType::VirtualDaaScoreChanged => todo!(),
-            NotificationType::PruningPointUTXOSetOverride => todo!(),
-            NotificationType::NewBlockTemplate => todo!(),
+            NotificationType::BlockAdded => kaspad_request::Payload::NotifyBlockAddedRequest(NotifyBlockAddedRequestMessage{}),
+
+            // TODO: implement all other notifications
+            _ => kaspad_request::Payload::NotifyBlockAddedRequest(NotifyBlockAddedRequestMessage{}),
+
+            // NotificationType::VirtualSelectedParentChainChanged => todo!(),
+            // NotificationType::FinalityConflicts => todo!(),
+            // NotificationType::FinalityConflictResolved => todo!(),
+            // NotificationType::UtxosChanged(_) => todo!(),
+            // NotificationType::VirtualSelectedParentBlueScoreChanged => todo!(),
+            // NotificationType::VirtualDaaScoreChanged => todo!(),
+            // NotificationType::PruningPointUTXOSetOverride => todo!(),
+            // NotificationType::NewBlockTemplate => todo!(),
         }
     }
 }
