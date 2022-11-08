@@ -37,7 +37,7 @@ async fn main() -> Result<(), Error> {
                 break;
             }
             match c_listener_recv.recv().await {
-                Ok(notification) => println!("RUST PROTOTYPE Notification received: {:?}", &*notification),
+                Ok(notification) => println!("RUST PROTOTYPE Notification received: {}", &*notification),
                 Err(err) => println!("Error in notification reporting loop: {:?}", err),
             }
         }
@@ -91,7 +91,7 @@ async fn main() -> Result<(), Error> {
                 break;
             }
             match c_public_listener_recv.recv().await {
-                Ok(notification) => println!("KASPAD Notification received: {:?}", &*notification),
+                Ok(notification) => println!("KASPAD Notification received: {}", &*notification),
                 Err(err) => println!("Error in notification reporting loop: {:?}", err),
             }
         }

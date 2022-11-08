@@ -129,13 +129,13 @@ impl Resolver {
             send_channel,
             pending_calls: Arc::new(Mutex::new(VecDeque::new())),
             sender_is_running: AtomicBool::new(false),
-            sender_shutdown : DuplexTrigger::new(),
+            sender_shutdown: DuplexTrigger::new(),
             receiver_is_running: AtomicBool::new(false),
-            receiver_shutdown : DuplexTrigger::new(),
+            receiver_shutdown: DuplexTrigger::new(),
             timeout_is_running: AtomicBool::new(false),
-            timeout_shutdown : DuplexTrigger::new(),
-            timeout_duration : AtomicU64::new(5_000),
-            timeout_timer_interval : AtomicU64::new(1_000),
+            timeout_shutdown: DuplexTrigger::new(),
+            timeout_duration: AtomicU64::new(5_000),
+            timeout_timer_interval: AtomicU64::new(1_000),
        }
     }
 

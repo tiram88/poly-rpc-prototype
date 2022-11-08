@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use std::sync::Arc;
 use async_std::channel::{Sender,Receiver};
 use serde::{Deserialize, Serialize};
@@ -46,6 +47,23 @@ pub enum Notification {
     VirtualDaaScoreChanged(VirtualDaaScoreChangedNotification),
     PruningPointUTXOSetOverride(PruningPointUTXOSetOverrideNotification),
     NewBlockTemplate(NewBlockTemplateNotification),
+}
+
+impl Display for Notification {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Notification::BlockAdded(ref notification) => write!(f, "Notification BlockAdded with hash {}", notification.block.verbose_data.hash),
+            _ => write!(f, "Notification whith unimplemented type"),
+            // Notification::VirtualSelectedParentChainChanged(_) => todo!(),
+            // Notification::FinalityConflict(_) => todo!(),
+            // Notification::FinalityConflictResolved(_) => todo!(),
+            // Notification::UtxosChanged(_) => todo!(),
+            // Notification::VirtualSelectedParentBlueScoreChanged(_) => todo!(),
+            // Notification::VirtualDaaScoreChanged(_) => todo!(),
+            // Notification::PruningPointUTXOSetOverride(_) => todo!(),
+            // Notification::NewBlockTemplate(_) => todo!(),
+        }
+    }
 }
 
 pub type NotificationSender = Sender<Arc<Notification>>;

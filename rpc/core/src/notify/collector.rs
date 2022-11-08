@@ -77,6 +77,12 @@ where
         }
     }
 
+    fn start_collect(&self, notifier: Arc<Notifier>) {
+        if !self.collect_is_running.load(Ordering::SeqCst) {
+            self.collect_task(notifier);
+        }
+    }
+
     fn collect_task(&self, notifier: Arc<Notifier>) {
         let collect_shutdown = self.collect_shutdown.clone();
         let collect_is_running = self.collect_is_running.clone();
@@ -125,13 +131,10 @@ where
     }
 
     async fn stop_collect(&self) -> Result<()> {
-        if self.collect_is_running.load(Ordering::SeqCst) != true {
-            return Ok(());
-        }
-
-        self.collect_shutdown.request.trigger.trigger();
-        self.collect_shutdown.response.listener.clone().await;
-        
+        if self.collect_is_running.load(Ordering::SeqCst) {
+            self.collect_shutdown.request.trigger.trigger();
+            self.collect_shutdown.response.listener.clone().await;
+        }        
         Ok(())
     }
 
@@ -144,7 +147,7 @@ where
     ArcConvert<T>: Into<Arc<Notification>>,
 {
     fn start(self: Arc<Self>, notifier: Arc<Notifier>) {
-        self.collect_task(notifier);
+        self.start_collect(notifier);
     }
 
     async fn stop(self: Arc<Self>) -> Result<()> {

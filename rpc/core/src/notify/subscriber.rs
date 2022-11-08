@@ -120,16 +120,16 @@ impl Subscriber {
 
     async fn stop_subscribe(self: Arc<Self>) -> Result<()> {
         let mut result: Result<()> = Ok(());
-            if self.subscribe_is_running.load(Ordering::SeqCst) == true {
-                match self.clone().try_send_subscribe(SubscribeMessage::Shutdown) {
-                    Ok(_) => {
-                        let mut subscribe_shutdown_listener = self.subscribe_shutdown_listener.lock().unwrap();
-                        let shutdown_listener = subscribe_shutdown_listener.take().unwrap();
-                        shutdown_listener.await;
-                    },
-                    Err(err) => { result = Err(err) },
-                }
+        if self.subscribe_is_running.load(Ordering::SeqCst) == true {
+            match self.clone().try_send_subscribe(SubscribeMessage::Shutdown) {
+                Ok(_) => {
+                    let mut subscribe_shutdown_listener = self.subscribe_shutdown_listener.lock().unwrap();
+                    let shutdown_listener = subscribe_shutdown_listener.take().unwrap();
+                    shutdown_listener.await;
+                },
+                Err(err) => { result = Err(err) },
             }
+        }
         result
     }
 
