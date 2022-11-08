@@ -22,7 +22,7 @@ impl fmt::Display for RpcHexData {
         }
 
         let mut hex = vec![0u8; self.0.len() * 2];
-        faster_hex::hex_encode(&self.0, &mut hex.as_mut_slice()).expect("The output is exactly twice the size of the input");
+        faster_hex::hex_encode(&self.0, hex.as_mut_slice()).expect("The output is exactly twice the size of the input");
         f.write_str(str::from_utf8(&hex).expect("hex is always valid UTF-8"))
     }
 }

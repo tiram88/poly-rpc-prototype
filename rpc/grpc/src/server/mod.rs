@@ -20,11 +20,12 @@ async fn shutdown_signal() {
 pub fn run_server(address: SocketAddr, core_service: Arc<RpcApi>) -> JoinHandle<Result<(), Error>> {
     println!("KaspadRPCServer listening on: {}", address);
 
-    let grpc_service = service::RpcService::new(core_service.clone());
+    let grpc_service = service::RpcService::new(core_service);
     grpc_service.start();
 
     let svc = RpcServer::new(grpc_service).send_compressed(CompressionEncoding::Gzip).accept_compressed(CompressionEncoding::Gzip);
 
-    let join = tokio::spawn(async move { Server::builder().add_service(svc).serve_with_shutdown(address, shutdown_signal()).await });
-    join
+    tokio::spawn(async move {
+        Server::builder().add_service(svc).serve_with_shutdown(address, shutdown_signal()).await
+    })
 }

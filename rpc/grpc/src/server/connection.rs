@@ -97,12 +97,11 @@ impl GrpcConnection {
     }
 
     async fn stop_collect(&self) {
-        if self.collect_is_running.load(Ordering::SeqCst) != true {
-            return;
+        if self.collect_is_running.load(Ordering::SeqCst) {
+            self.collect_shutdown.request.trigger.trigger();
+            self.collect_shutdown.response.listener.clone().await;
         }
 
-        self.collect_shutdown.request.trigger.trigger();
-        self.collect_shutdown.response.listener.clone().await;
     }
 }
 
@@ -120,12 +119,10 @@ impl GrpcConnectionManager {
         let notifiy_listener = self.notifier.clone().register_new_listener(None);
         println!("register a new gRPC connection from: {0} with listener id {1}", address, notifiy_listener.id);
         let connection = Arc::new(GrpcConnection::new(address, sender, notifiy_listener));
-        match self.connections.insert(address.clone(), connection.clone()) {
-            Some(_prev) => {
-                //prev.sender.closed().await
-            }
-            None => {}
-        }
+
+        // A pre-existing connection with same address is ignored here
+        // TODO: see if some close pattern can be applied to the replaced connection
+        self.connections.insert(address, connection.clone());
         connection.clone().start();
         connection.notifiy_listener.id
     }

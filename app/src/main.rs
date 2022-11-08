@@ -1,5 +1,4 @@
 use hashes::Hash;
-use rpc_core;
 use rpc_grpc::protowire;
 use std::str::FromStr;
 

@@ -23,7 +23,7 @@ impl From<&Block> for RpcBlockVerboseData {
             selected_parent_hash: 0.into(),
             transaction_ids: vec![],
             is_header_only: true,
-            blue_score: 0u64.into(),
+            blue_score: 0u64,
             children_hashes: vec![],
             merge_set_blues_hashes: vec![],
             merge_set_reds_hashes: vec![],

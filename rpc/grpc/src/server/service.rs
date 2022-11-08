@@ -66,7 +66,7 @@ impl RpcService {
         // Prepare internals
         let collector = Arc::new(RpcCoreCollector::new(core_channel.receiver()));
         let subscription_manager: DynSubscriptionManager = core_service.notifier();
-        let subscriber = Subscriber::new(subscription_manager, core_listener.clone().id);
+        let subscriber = Subscriber::new(subscription_manager, core_listener.id);
         let notifier = Arc::new(Notifier::new(Some(collector), Some(subscriber), SendingChangedUtxo::FilteredByAddress));
         let connection_manager = Arc::new(RwLock::new(GrpcConnectionManager::new(notifier.clone())));
 
@@ -89,7 +89,7 @@ impl RpcService {
     pub async fn stop(&self) -> RpcResult<()> {
         // Unsubscribe from all notification types
         let listener_id = self.core_listener.id;
-        for event in EVENT_TYPE_ARRAY.clone().into_iter() {
+        for event in EVENT_TYPE_ARRAY.into_iter() {
             self.core_service.stop_notify(listener_id, event.into()).await?;
         }
 
@@ -114,7 +114,7 @@ impl Rpc for RpcService {
         &self,
         request: Request<tonic::Streaming<KaspadRequest>>,
     ) -> Result<Response<Self::MessageStreamStream>, tonic::Status> {
-        let remote_addr = request.remote_addr().ok_or(tonic::Status::new(
+        let remote_addr = request.remote_addr().ok_or_else(|| tonic::Status::new(
             tonic::Code::InvalidArgument,
             "Incoming connection opening request has no remote address".to_string(),
         ))?;

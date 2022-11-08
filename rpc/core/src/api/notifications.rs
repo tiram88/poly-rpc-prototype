@@ -36,6 +36,7 @@ impl From<&Notification> for NotificationType {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
+#[allow(clippy::large_enum_variant)]
 pub enum Notification {
     BlockAdded(BlockAddedNotification),
     VirtualSelectedParentChainChanged(VirtualSelectedParentChainChangedNotification),
@@ -77,6 +78,6 @@ pub enum NotificationHandle {
 
 impl AsRef<Notification> for Notification {
     fn as_ref(&self) -> &Self {
-        &self
+        self
     }
 }

@@ -47,7 +47,7 @@ impl Subscriber {
     }
 
     pub fn start(self: Arc<Self>) {
-        if self.clone().subscribe_is_running.load(Ordering::SeqCst) != true {
+        if !self.subscribe_is_running.load(Ordering::SeqCst) {
             let (shutdown_trigger, shutdown_listener) = triggered::trigger();
             let mut subscribe_shutdown_listener = self.subscribe_shutdown_listener.lock().unwrap();
             *subscribe_shutdown_listener = Some(shutdown_listener);
@@ -103,11 +103,14 @@ impl Subscriber {
 
     async fn stop_subscribe(self: Arc<Self>) -> Result<()> {
         let mut result: Result<()> = Ok(());
-        if self.subscribe_is_running.load(Ordering::SeqCst) == true {
+        if self.subscribe_is_running.load(Ordering::SeqCst) {
             match self.clone().try_send_subscribe(SubscribeMessage::Shutdown) {
                 Ok(_) => {
-                    let mut subscribe_shutdown_listener = self.subscribe_shutdown_listener.lock().unwrap();
-                    let shutdown_listener = subscribe_shutdown_listener.take().unwrap();
+                    let shutdown_listener: triggered::Listener;
+                    {
+                        let mut subscribe_shutdown_listener = self.subscribe_shutdown_listener.lock().unwrap();
+                        shutdown_listener = subscribe_shutdown_listener.take().unwrap();
+                    }
                     shutdown_listener.await;
                 }
                 Err(err) => result = Err(err),

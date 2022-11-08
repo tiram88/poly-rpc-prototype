@@ -5,7 +5,7 @@ use derive_more::Deref;
 use crate::stubs::RpcUtxoAddress;
 
 /// A newtype allowing conversion Vec<RpcUtxoAddress> to AHashMap<RpcUtxoAddress, ()>.
-#[derive(Clone, Debug, Deref)]
+#[derive(Clone, Debug, Deref, Default)]
 pub struct RpcUtxoAddressMap(AHashMap<RpcUtxoAddress, ()>);
 
 impl RpcUtxoAddressMap {

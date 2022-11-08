@@ -30,7 +30,7 @@ impl From<RpcResult<&rpc_core::GetBlockResponse>> for protowire::GetBlockRespons
         // };
         Self {
             block: item.as_ref().map(|x| protowire::RpcBlock::from(&x.block)).ok(),
-            error: item.map_err(|x| protowire::RpcError::from(x)).err(),
+            error: item.map_err(protowire::RpcError::from).err(),
         }
     }
 }
@@ -43,7 +43,7 @@ impl From<&rpc_core::NotifyBlockAddedRequest> for protowire::NotifyBlockAddedReq
 
 impl From<RpcResult<&rpc_core::NotifyBlockAddedResponse>> for protowire::NotifyBlockAddedResponseMessage {
     fn from(item: RpcResult<&rpc_core::NotifyBlockAddedResponse>) -> Self {
-        Self { error: item.map_err(|x| protowire::RpcError::from(x)).err() }
+        Self { error: item.map_err(protowire::RpcError::from).err() }
     }
 }
 
@@ -111,7 +111,7 @@ impl TryFrom<&protowire::GetBlockResponseMessage> for rpc_core::GetBlockResponse
                             Err(x.into())
                         })
                 },
-                |x| rpc_core::RpcBlock::try_from(x),
+                rpc_core::RpcBlock::try_from,
             )
             .map(|x| rpc_core::GetBlockResponse { block: x })
     }

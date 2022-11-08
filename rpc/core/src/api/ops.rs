@@ -39,13 +39,23 @@ pub enum RpcApiOps {
     Notification,
 }
 
-impl Into<u32> for RpcApiOps {
-    fn into(self) -> u32 {
-        self as u32
+impl From<RpcApiOps> for u32 {
+    fn from(item: RpcApiOps) -> Self {
+        item as u32
     }
 }
 
 pub enum SubscribeCommand {
     Start = 0,
     Stop = 1,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::RpcApiOps;
+
+    #[test]
+    fn test_rpc_api_ops_convert() {
+        assert_eq!(0 as u32, RpcApiOps::Ping.into());
+    }
 }

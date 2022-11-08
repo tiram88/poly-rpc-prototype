@@ -10,7 +10,7 @@ use std::str::{self, FromStr};
 use crate::RpcError;
 
 #[repr(transparent)]
-#[derive(Debug, PartialEq, Copy, Clone, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
 #[serde(rename_all = "camelCase", try_from = "String", into = "String")]
 pub struct RpcBlueWorkType(BlueWorkType);
 
@@ -42,7 +42,7 @@ impl FromStr for RpcBlueWorkType {
     type Err = RpcError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(RpcBlueWorkType(u128::from_str_radix(s, 16).map_err(|err| RpcError::RpcBlueWorkTypeParseError(err))?))
+        Ok(RpcBlueWorkType(u128::from_str_radix(s, 16).map_err(RpcError::RpcBlueWorkTypeParseError)?))
     }
 }
 

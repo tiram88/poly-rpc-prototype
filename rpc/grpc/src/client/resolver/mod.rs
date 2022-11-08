@@ -367,35 +367,26 @@ impl Resolver {
     }
 
     async fn stop_sender(&self) -> Result<()> {
-        if self.sender_is_running.load(Ordering::SeqCst) != true {
-            return Ok(());
+        if self.sender_is_running.load(Ordering::SeqCst) {
+            self.sender_shutdown.request.trigger.trigger();
+            self.sender_shutdown.response.listener.clone().await;
         }
-
-        self.sender_shutdown.request.trigger.trigger();
-        self.sender_shutdown.response.listener.clone().await;
-
         Ok(())
     }
 
     async fn stop_receiver(&self) -> Result<()> {
-        if self.receiver_is_running.load(Ordering::SeqCst) != true {
-            return Ok(());
+        if self.receiver_is_running.load(Ordering::SeqCst) {
+            self.receiver_shutdown.request.trigger.trigger();
+            self.receiver_shutdown.response.listener.clone().await;
         }
-
-        self.receiver_shutdown.request.trigger.trigger();
-        self.receiver_shutdown.response.listener.clone().await;
-
         Ok(())
     }
 
     async fn stop_timeout(&self) -> Result<()> {
-        if self.timeout_is_running.load(Ordering::SeqCst) != true {
-            return Ok(());
+        if self.timeout_is_running.load(Ordering::SeqCst) {
+            self.timeout_shutdown.request.trigger.trigger();
+            self.timeout_shutdown.response.listener.clone().await;
         }
-
-        self.timeout_shutdown.request.trigger.trigger();
-        self.timeout_shutdown.response.listener.clone().await;
-
         Ok(())
     }
 }

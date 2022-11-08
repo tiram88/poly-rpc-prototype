@@ -99,7 +99,7 @@ struct Inner {
 
 impl Inner {
     fn new(collector: Option<DynCollector>, subscriber: Option<Subscriber>, sending_changed_utxos: SendingChangedUtxo) -> Self {
-        let subscriber = subscriber.map(|x| Arc::new(x));
+        let subscriber = subscriber.map(Arc::new);
         Self {
             listeners: Arc::new(Mutex::new(AHashMap::new())),
             dispatcher_channel: EventArray::default(),
@@ -115,8 +115,8 @@ impl Inner {
         if let Some(ref subscriber) = self.subscriber.clone().as_ref() {
             subscriber.clone().start();
         }
-        for event in EVENT_TYPE_ARRAY.clone().into_iter() {
-            if self.clone().dispatcher_is_running[event].load(Ordering::SeqCst) != true {
+        for event in EVENT_TYPE_ARRAY.into_iter() {
+            if !self.clone().dispatcher_is_running[event].load(Ordering::SeqCst) {
                 let (shutdown_trigger, shutdown_listener) = triggered::trigger();
                 let mut dispatcher_shutdown_listener = self.dispatcher_shutdown_listener.lock().unwrap();
                 dispatcher_shutdown_listener[event] = Some(shutdown_listener);
@@ -124,7 +124,7 @@ impl Inner {
             }
         }
         if let Some(ref collector) = self.collector.clone().as_ref() {
-            collector.clone().start(notifier.clone());
+            collector.clone().start(notifier);
         }
     }
 
@@ -202,7 +202,7 @@ impl Inner {
                         }
 
                         // Feedback needed if purge will empty listeners or if reporting any change
-                        need_subscribe = (purge.len() > 0 && (purge.len() == listeners.len())) || report_all_changes;
+                        need_subscribe = (!purge.is_empty() && (purge.len() == listeners.len())) || report_all_changes;
 
                         // Remove closed listeners
                         for id in purge {
@@ -254,7 +254,7 @@ impl Inner {
         let mut listeners = self.listeners.lock().unwrap();
         if let Some(mut listener) = listeners.remove(&id) {
             drop(listeners);
-            let active_events: Vec<EventType> = EVENT_TYPE_ARRAY.clone().into_iter().filter(|event| listener.has(*event)).collect();
+            let active_events: Vec<EventType> = EVENT_TYPE_ARRAY.into_iter().filter(|event| listener.has(*event)).collect();
             for event in active_events.iter() {
                 self.clone().stop_notify(listener.id(), (*event).into())?;
             }
@@ -305,12 +305,15 @@ impl Inner {
 
     async fn stop_dispatch(self: Arc<Self>) -> Result<()> {
         let mut result: Result<()> = Ok(());
-        for event in EVENT_TYPE_ARRAY.clone().into_iter() {
-            if self.dispatcher_is_running[event].load(Ordering::SeqCst) == true {
+        for event in EVENT_TYPE_ARRAY.into_iter() {
+            if self.dispatcher_is_running[event].load(Ordering::SeqCst) {
                 match self.clone().try_send_dispatch(event, DispatchMessage::Shutdown) {
                     Ok(_) => {
-                        let mut dispatcher_shutdown_listener = self.dispatcher_shutdown_listener.lock().unwrap();
-                        let shutdown_listener = dispatcher_shutdown_listener[event].take().unwrap();
+                        let shutdown_listener: triggered::Listener;
+                        {
+                            let mut dispatcher_shutdown_listener = self.dispatcher_shutdown_listener.lock().unwrap();
+                            shutdown_listener = dispatcher_shutdown_listener[event].take().unwrap();
+                        }
                         shutdown_listener.await;
                     }
                     Err(err) => result = Err(err),

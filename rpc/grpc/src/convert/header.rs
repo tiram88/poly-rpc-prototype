@@ -10,7 +10,7 @@ impl From<&rpc_core::RpcBlockHeader> for protowire::RpcBlockHeader {
     fn from(item: &rpc_core::RpcBlockHeader) -> Self {
         Self {
             version: item.version,
-            parents: item.parents.iter().map(|x| protowire::RpcBlockLevelParents::from(x)).collect(),
+            parents: item.parents.iter().map(protowire::RpcBlockLevelParents::from).collect(),
             hash_merkle_root: item.hash_merkle_root.to_string(),
             accepted_id_merkle_root: item.accepted_id_merkle_root.to_string(),
             utxo_commitment: item.utxo_commitment.to_string(),
@@ -43,7 +43,7 @@ impl TryFrom<&protowire::RpcBlockHeader> for rpc_core::RpcBlockHeader {
             parents: item
                 .parents
                 .iter()
-                .map(|x| rpc_core::RpcBlockLevelParents::try_from(x))
+                .map(rpc_core::RpcBlockLevelParents::try_from)
                 .collect::<RpcResult<Vec<rpc_core::RpcBlockLevelParents>>>()?,
             hash_merkle_root: RpcHash::from_str(&item.hash_merkle_root)?,
             accepted_id_merkle_root: RpcHash::from_str(&item.accepted_id_merkle_root)?,

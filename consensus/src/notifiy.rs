@@ -16,6 +16,7 @@ use std::{
 
 pub type ConsensusNotificationChannel = Channel<Arc<ConsensusNotification>>;
 
+#[derive(Debug, Default)]
 pub struct RandomBlockProducer {
     channel: ConsensusNotificationChannel,
     terminate: Arc<AtomicBool>,

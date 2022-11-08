@@ -10,8 +10,8 @@ impl From<&rpc_core::RpcTransaction> for protowire::RpcTransaction {
     fn from(item: &rpc_core::RpcTransaction) -> Self {
         Self {
             version: item.version,
-            inputs: item.inputs.iter().map(|x| protowire::RpcTransactionInput::from(x)).collect(),
-            outputs: item.outputs.iter().map(|x| protowire::RpcTransactionOutput::from(x)).collect(),
+            inputs: item.inputs.iter().map(protowire::RpcTransactionInput::from).collect(),
+            outputs: item.outputs.iter().map(protowire::RpcTransactionOutput::from).collect(),
             lock_time: item.lock_time,
             subnetwork_id: item.subnetwork_id.to_string(),
             gas: item.gas,
@@ -105,12 +105,12 @@ impl TryFrom<&protowire::RpcTransaction> for rpc_core::RpcTransaction {
             inputs: item
                 .inputs
                 .iter()
-                .map(|x| rpc_core::RpcTransactionInput::try_from(x))
+                .map(rpc_core::RpcTransactionInput::try_from)
                 .collect::<RpcResult<Vec<rpc_core::RpcTransactionInput>>>()?,
             outputs: item
                 .outputs
                 .iter()
-                .map(|x| rpc_core::RpcTransactionOutput::try_from(x))
+                .map(rpc_core::RpcTransactionOutput::try_from)
                 .collect::<RpcResult<Vec<rpc_core::RpcTransactionOutput>>>()?,
             lock_time: item.lock_time,
             subnetwork_id: rpc_core::RpcSubnetworkId::from_str(&item.subnetwork_id)?,
@@ -119,7 +119,7 @@ impl TryFrom<&protowire::RpcTransaction> for rpc_core::RpcTransaction {
             verbose_data: item
                 .verbose_data
                 .as_ref()
-                .ok_or(RpcError::MissingRpcFieldError("RpcTransaction".to_string(), "verbose_data".to_string()))?
+                .ok_or_else(|| RpcError::MissingRpcFieldError("RpcTransaction".to_string(), "verbose_data".to_string()))?
                 .try_into()?,
         })
     }
@@ -132,12 +132,12 @@ impl TryFrom<&protowire::RpcTransactionInput> for rpc_core::RpcTransactionInput 
             previous_outpoint: item
                 .previous_outpoint
                 .as_ref()
-                .ok_or(RpcError::MissingRpcFieldError("RpcTransactionInput".to_string(), "previous_outpoint".to_string()))?
+                .ok_or_else(|| RpcError::MissingRpcFieldError("RpcTransactionInput".to_string(), "previous_outpoint".to_string()))?
                 .try_into()?,
             signature_script: RpcHexData::from_str(&item.signature_script)?,
             sequence: item.sequence,
             sig_op_count: item.sig_op_count,
-            verbose_data: item.verbose_data.as_ref().map(|x| rpc_core::RpcTransactionInputVerboseData::try_from(x)).transpose()?,
+            verbose_data: item.verbose_data.as_ref().map(rpc_core::RpcTransactionInputVerboseData::try_from).transpose()?,
         })
     }
 }
@@ -150,12 +150,12 @@ impl TryFrom<&protowire::RpcTransactionOutput> for rpc_core::RpcTransactionOutpu
             script_public_key: item
                 .script_public_key
                 .as_ref()
-                .ok_or(RpcError::MissingRpcFieldError("RpcTransactionOutput".to_string(), "script_public_key".to_string()))?
+                .ok_or_else(|| RpcError::MissingRpcFieldError("RpcTransactionOutput".to_string(), "script_public_key".to_string()))?
                 .try_into()?,
             verbose_data: item
                 .verbose_data
                 .as_ref()
-                .ok_or(RpcError::MissingRpcFieldError("RpcTransactionOutput".to_string(), "verbose_data".to_string()))?
+                .ok_or_else(|| RpcError::MissingRpcFieldError("RpcTransactionOutput".to_string(), "verbose_data".to_string()))?
                 .try_into()?,
         })
     }
@@ -176,7 +176,7 @@ impl TryFrom<&protowire::RpcUtxoEntry> for rpc_core::RpcUtxoEntry {
             script_public_key: item
                 .script_public_key
                 .as_ref()
-                .ok_or(RpcError::MissingRpcFieldError("RpcTransactionOutput".to_string(), "script_public_key".to_string()))?
+                .ok_or_else(|| RpcError::MissingRpcFieldError("RpcTransactionOutput".to_string(), "script_public_key".to_string()))?
                 .try_into()?,
             block_daa_score: item.block_daa_score,
             is_coinbase: item.is_coinbase,

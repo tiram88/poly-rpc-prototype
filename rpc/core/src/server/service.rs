@@ -144,7 +144,7 @@ fn create_dummy_rpc_block() -> RpcBlock {
         verbose_data: RpcBlockVerboseData {
             hash: Hash::from_str("8270e63a0295d7257785b9c9b76c9a2efb7fb8d6ac0473a1bff1571c5030e995").unwrap(),
             difficulty: 5678.0,
-            selected_parent_hash: sel_parent_hash.clone(),
+            selected_parent_hash: sel_parent_hash,
             transaction_ids: vec![],
             is_header_only: true,
             blue_score: 98765,

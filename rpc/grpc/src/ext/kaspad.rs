@@ -41,6 +41,7 @@ impl KaspadResponse {
     }
 }
 
+#[allow(clippy::match_like_matches_macro)]
 impl kaspad_response::Payload {
     pub fn is_notification(&self) -> bool {
         match self {

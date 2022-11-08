@@ -38,13 +38,13 @@ impl From<kaspad_request::Payload> for KaspadRequest {
 
 impl AsRef<KaspadRequest> for KaspadRequest {
     fn as_ref(&self) -> &Self {
-        &self
+        self
     }
 }
 
 impl AsRef<KaspadResponse> for KaspadResponse {
     fn as_ref(&self) -> &Self {
-        &self
+        self
     }
 }
 

@@ -14,9 +14,15 @@ impl SingleTrigger {
     }
 }
 
+impl Default for SingleTrigger {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Bi-directional trigger meant to function in
 /// request/response fashion
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct DuplexTrigger {
     pub request: SingleTrigger,
     pub response: SingleTrigger,
