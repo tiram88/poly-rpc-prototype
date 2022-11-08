@@ -1,26 +1,20 @@
-use std::sync::Arc;
 use async_trait::async_trait;
+use std::sync::Arc;
 
+use self::resolver::Resolver;
+use self::result::Result;
 use rpc_core::{
-    api::rpc::RpcApi,
     api::ops::RpcApiOps,
-    GetBlockRequest, GetBlockResponse,
-    GetInfoRequest, GetInfoResponse,
-    RpcResult,
+    api::rpc::RpcApi,
     notify::{
         channel::NotificationChannel,
         collector::RpcCoreCollector,
-        listener::{
-            ListenerReceiverSide,
-            ListenerID, SendingChangedUtxo
-        },
+        listener::{ListenerID, ListenerReceiverSide, SendingChangedUtxo},
         notifier::Notifier,
         subscriber::Subscriber,
     },
-    NotificationType
+    GetBlockRequest, GetBlockResponse, GetInfoRequest, GetInfoResponse, NotificationType, RpcResult,
 };
-use self::resolver::Resolver;
-use self::result::Result;
 
 mod errors;
 mod resolver;
@@ -32,8 +26,7 @@ pub struct RpcApiGrpc {
 }
 
 impl RpcApiGrpc {
-    pub async fn connect(address: String) -> Result<RpcApiGrpc>
-    {
+    pub async fn connect(address: String) -> Result<RpcApiGrpc> {
         let notify_channel = NotificationChannel::default();
         let inner = Resolver::connect(address, notify_channel.sender()).await?;
         let collector = Arc::new(RpcCoreCollector::new(notify_channel.receiver()));
@@ -41,10 +34,7 @@ impl RpcApiGrpc {
 
         let notifier = Arc::new(Notifier::new(Some(collector), Some(subscriber), SendingChangedUtxo::FilteredByAddress));
 
-        Ok(Self {
-            inner,
-            notifier,
-        })
+        Ok(Self { inner, notifier })
     }
 
     pub async fn start(&self) {
@@ -72,7 +62,6 @@ impl RpcApi for RpcApiGrpc {
         self.inner.clone().call(RpcApiOps::GetInfo, request).await?.as_ref().try_into()
     }
 
-
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // Notification API
 
@@ -82,7 +71,7 @@ impl RpcApi for RpcApiGrpc {
     }
 
     /// Unregister an existing listener.
-    /// 
+    ///
     /// Stop all notifications for this listener and drop its channel.
     async fn unregister_listener(&self, id: ListenerID) -> RpcResult<()> {
         self.notifier.unregister_listener(id)?;

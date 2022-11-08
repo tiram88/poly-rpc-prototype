@@ -1,33 +1,23 @@
-use core::fmt::Debug;
-use std::sync::{Arc};
-use std::sync::atomic::{AtomicBool, Ordering};
-use async_std::channel::{
-    Receiver,
-    Sender,
-};
+use async_std::channel::{Receiver, Sender};
 use async_std::stream::StreamExt;
 use async_trait::async_trait;
+use core::fmt::Debug;
 use futures::{
     future::FutureExt, // for `.fuse()`
     pin_mut,
     select,
 };
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 extern crate derive_more;
-use derive_more::Deref;
-use crate::Notification;
-use crate::notify::{
-    channel::Channel,
-    collector,
-    notifier::Notifier,
-    result::Result,
-};
+use crate::notify::{channel::Channel, collector, notifier::Notifier, result::Result};
 use crate::utils::triggers::DuplexTrigger;
-
+use crate::Notification;
+use derive_more::Deref;
 
 pub type CollectorNotificationChannel<T> = Channel<Arc<T>>;
 pub type CollectorNotificationSender<T> = Sender<Arc<T>>;
 pub type CollectorNotificationReceiver<T> = Receiver<Arc<T>>;
-
 
 #[async_trait]
 pub trait Collector: Send + Sync + Debug {
@@ -48,9 +38,8 @@ impl<T> From<Arc<T>> for ArcConvert<T> {
     }
 }
 
-
 /// A notifications collector that receives [`T`] from a channel,
-/// converts it into a [Notification] and sends it to a its 
+/// converts it into a [Notification] and sends it to a its
 /// [Notifier].
 #[derive(Debug)]
 pub struct CollectorFrom<T>
@@ -67,14 +56,8 @@ where
     T: Send + Sync + 'static + Sized + Debug,
     ArcConvert<T>: Into<Arc<Notification>>,
 {
-    pub fn new(
-        recv_channel: CollectorNotificationReceiver<T>,
-    ) -> Self {
-        Self {
-            recv_channel,
-            collect_shutdown: Arc::new(DuplexTrigger::new()),
-            collect_is_running: Arc::new(AtomicBool::new(false)),
-        }
+    pub fn new(recv_channel: CollectorNotificationReceiver<T>) -> Self {
+        Self { recv_channel, collect_shutdown: Arc::new(DuplexTrigger::new()), collect_is_running: Arc::new(AtomicBool::new(false)) }
     }
 
     fn start_collect(&self, notifier: Arc<Notifier>) {
@@ -99,7 +82,6 @@ where
             pin_mut!(notifications);
 
             loop {
-
                 select! {
                     _ = shutdown => { break; }
                     notification = notifications.next().fuse() => {
@@ -121,23 +103,20 @@ where
                         }
                     }
                 }
-
             }
             collect_is_running.store(false, Ordering::SeqCst);
             collect_shutdown.response.trigger.trigger();
             println!("[Collector] collect_task end");
         });
-
     }
 
     async fn stop_collect(&self) -> Result<()> {
         if self.collect_is_running.load(Ordering::SeqCst) {
             self.collect_shutdown.request.trigger.trigger();
             self.collect_shutdown.response.listener.clone().await;
-        }        
+        }
         Ok(())
     }
-
 }
 
 #[async_trait]
@@ -156,6 +135,6 @@ where
 }
 
 /// A rpc_core notification collector providing a simple pass-through.
-/// No conversion occurs since both source and target data are of 
+/// No conversion occurs since both source and target data are of
 /// type [`Notification`].
 pub type RpcCoreCollector = CollectorFrom<Notification>;

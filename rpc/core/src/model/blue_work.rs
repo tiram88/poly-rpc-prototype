@@ -1,14 +1,13 @@
 extern crate derive_more;
 
+use borsh::{BorshDeserialize, BorshSchema, BorshSerialize};
+use consensus_core::BlueWorkType;
+use serde::{Deserialize, Serialize};
+use std::convert::TryFrom;
 use std::fmt::{Debug, Display, Formatter};
 use std::str::{self, FromStr};
-use std::convert::TryFrom;
-use borsh::{BorshSerialize, BorshDeserialize, BorshSchema};
-use serde::{Serialize, Deserialize};
-use consensus_core::BlueWorkType;
 
 use crate::RpcError;
-
 
 #[repr(transparent)]
 #[derive(Debug, PartialEq, Copy, Clone, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
@@ -43,9 +42,7 @@ impl FromStr for RpcBlueWorkType {
     type Err = RpcError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(RpcBlueWorkType(
-            u128::from_str_radix(s, 16).map_err(|err|RpcError::RpcBlueWorkTypeParseError(err))?
-        ))
+        Ok(RpcBlueWorkType(u128::from_str_radix(s, 16).map_err(|err| RpcError::RpcBlueWorkTypeParseError(err))?))
     }
 }
 
@@ -62,7 +59,6 @@ impl TryFrom<String> for RpcBlueWorkType {
         value.parse()
     }
 }
-
 
 #[cfg(test)]
 mod tests {

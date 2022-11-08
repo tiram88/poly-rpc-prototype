@@ -1,9 +1,7 @@
+use borsh::{BorshDeserialize, BorshSchema, BorshSerialize};
 use serde::{Deserialize, Serialize};
-use borsh::{BorshSerialize, BorshDeserialize, BorshSchema};
 
-use crate::{
-    RpcBlock, RpcHash,
-};
+use crate::{RpcBlock, RpcHash};
 
 /// GetBlockRequest requests information about a specific block
 #[derive(Clone, Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
@@ -20,12 +18,10 @@ pub struct GetBlockRequest {
 #[serde(rename_all = "camelCase")]
 pub struct GetBlockResponse {
     pub block: RpcBlock,
-
     // According to app\rpc\rpchandlers\get_block.go
     // block and error as mutually exclusive
     // RpcError error = 1000;
 }
-
 
 /// NotifyBlockAddedRequest registers this connection for blockAdded notifications.
 ///
@@ -53,8 +49,7 @@ pub struct BlockAddedNotification {
 /// GetInfoRequest returns info about the node.
 #[derive(Clone, Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct GetInfoRequest {
-}
+pub struct GetInfoRequest {}
 
 #[derive(Clone, Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
 #[serde(rename_all = "camelCase")]

@@ -1,10 +1,10 @@
+use clap::Parser;
+use hashes::Hash;
+use rpc_core::api::rpc::RpcApi;
+use rpc_core::{GetBlockRequest, GetInfoRequest, RpcHash};
+use rpc_grpc::client::RpcApiGrpc;
 use std::str::FromStr;
 use tokio::time::{sleep, Duration};
-use clap::Parser;
-use rpc_core::{GetBlockRequest, RpcHash, GetInfoRequest};
-use rpc_core::api::rpc::RpcApi;
-use rpc_grpc::client::RpcApiGrpc;
-use hashes::Hash;
 
 pub type Error = Box<dyn std::error::Error + Send + Sync + 'static>;
 
@@ -37,7 +37,9 @@ async fn main() -> Result<(), Error> {
                 break;
             }
             match c_listener_recv.recv().await {
-                Ok(notification) => println!("RUST PROTOTYPE Notification received: {}", &*notification),
+                Ok(notification) => {
+                    println!("RUST PROTOTYPE Notification received: {}", &*notification)
+                }
                 Err(err) => println!("Error in notification reporting loop: {:?}", err),
             }
         }
@@ -47,12 +49,10 @@ async fn main() -> Result<(), Error> {
     // Register for notifications
     c.start_notify(c_listener.id, rpc_core::NotificationType::BlockAdded).await?;
 
-
-
     println!("REQUEST Existing hash");
     let request = GetBlockRequest {
         hash: RpcHash::from_str("8270e63a0295d7257785b9c9b76c9a2efb7fb8d6ac0473a1bff1571c5030e995")?,
-        include_transactions: false
+        include_transactions: false,
     };
     let response = c.get_block(request).await;
     println!("RESPONSE = {:#?}", response);
@@ -62,7 +62,7 @@ async fn main() -> Result<(), Error> {
     println!("REQUEST Missing hash");
     let request = GetBlockRequest {
         hash: Hash::from_str("0070e63a0295d7257785b9c9b76c9a2efb7fb8d6ac0473a1bff1571c5030e995")?,
-        include_transactions: false
+        include_transactions: false,
     };
     let response = c.get_block(request).await;
     println!("RESPONSE = {:#?}", response);
@@ -71,7 +71,6 @@ async fn main() -> Result<(), Error> {
     let request = GetInfoRequest {};
     let response = c.get_info(request).await;
     println!("RESPONSE = {:#?}", response);
-
 
     // -------------------------------------------------------------------------------------------
     println!("*** GO KASPA NODE ***");
@@ -100,8 +99,6 @@ async fn main() -> Result<(), Error> {
 
     // Register for notifications
     c_public.start_notify(c_public_listener.id, rpc_core::NotificationType::BlockAdded).await?;
-
-
 
     // println!("REQUEST Public node, existing hash");
     // let request = GetBlockRequest {
@@ -160,4 +157,3 @@ async fn main() -> Result<(), Error> {
 
     Ok(())
 }
-

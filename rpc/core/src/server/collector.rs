@@ -1,12 +1,7 @@
-use std::sync::{Arc};
-use async_std::channel::{Sender, Receiver};
-use consensus_core::stubs::{
-    Notification as ConsensusNotification,
-};
-use crate::notify::{
-    channel::Channel,
-    collector::CollectorFrom,
-};
+use crate::notify::{channel::Channel, collector::CollectorFrom};
+use async_std::channel::{Receiver, Sender};
+use consensus_core::stubs::Notification as ConsensusNotification;
+use std::sync::Arc;
 
 pub(crate) type ConsensusCollector = CollectorFrom<ConsensusNotification>;
 

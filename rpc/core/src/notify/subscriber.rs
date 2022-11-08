@@ -1,19 +1,13 @@
-use core::fmt::Debug;
-use std::{sync::{Arc, Mutex, atomic::{AtomicBool, Ordering}}};
 use async_std::channel::{Receiver, Sender};
 use async_trait::async_trait;
+use core::fmt::Debug;
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc, Mutex,
+};
 extern crate derive_more;
-use crate::{
-    NotificationType, RpcResult
-};
-use super::{
-    channel::Channel,
-    listener::{
-        ListenerID,
-    },
-    message::SubscribeMessage,
-    result::Result,
-};
+use super::{channel::Channel, listener::ListenerID, message::SubscribeMessage, result::Result};
+use crate::{NotificationType, RpcResult};
 
 /// A manager of subscriptions to notifications for registered listeners
 #[async_trait]
@@ -38,10 +32,7 @@ pub struct Subscriber {
 }
 
 impl Subscriber {
-    pub fn new(
-        subscription_manager: DynSubscriptionManager,
-        listener_id: ListenerID,
-    ) -> Self {
+    pub fn new(subscription_manager: DynSubscriptionManager, listener_id: ListenerID) -> Self {
         Self {
             subscription_manager,
             listener_id,
@@ -65,24 +56,18 @@ impl Subscriber {
     }
 
     /// Launch the subscribe task
-    fn subscribe_task(
-        &self,
-        shutdown_trigger: triggered::Trigger,
-        subscribe_rx: Receiver<SubscribeMessage>)
-    {
+    fn subscribe_task(&self, shutdown_trigger: triggered::Trigger, subscribe_rx: Receiver<SubscribeMessage>) {
         let subscribe_is_running = self.subscribe_is_running.clone();
         subscribe_is_running.store(true, Ordering::SeqCst);
         let subscription_manager = self.subscription_manager.clone();
         // let listener = self.listener.clone();
         let listener_id = self.listener_id;
 
-
         workflow_core::task::spawn(async move {
             loop {
                 let subscribe = subscribe_rx.recv().await.unwrap();
 
                 match subscribe {
-
                     SubscribeMessage::StartEvent(ref notification_type) => {
                         match subscription_manager.clone().start_notify(listener_id, notification_type.clone()).await {
                             Ok(_) => (),
@@ -90,7 +75,7 @@ impl Subscriber {
                                 println!("[Reporter] start notify error: {:?}", err);
                             }
                         }
-                    },
+                    }
 
                     SubscribeMessage::StopEvent(ref notification_type) => {
                         match subscription_manager.clone().stop_notify(listener_id, notification_type.clone()).await {
@@ -99,14 +84,12 @@ impl Subscriber {
                                 println!("[Reporter] start notify error: {:?}", err);
                             }
                         }
-                    },
+                    }
 
                     SubscribeMessage::Shutdown => {
                         break;
-                    },
-
+                    }
                 }
-
             }
             subscribe_is_running.store(false, Ordering::SeqCst);
             shutdown_trigger.trigger();
@@ -126,8 +109,8 @@ impl Subscriber {
                     let mut subscribe_shutdown_listener = self.subscribe_shutdown_listener.lock().unwrap();
                     let shutdown_listener = subscribe_shutdown_listener.take().unwrap();
                     shutdown_listener.await;
-                },
-                Err(err) => { result = Err(err) },
+                }
+                Err(err) => result = Err(err),
             }
         }
         result
@@ -136,5 +119,4 @@ impl Subscriber {
     pub async fn stop(self: Arc<Self>) -> Result<()> {
         self.clone().stop_subscribe().await
     }
-
 }

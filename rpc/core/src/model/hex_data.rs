@@ -1,10 +1,10 @@
 extern crate derive_more;
 
-use std::fmt;
-use std::str::{ self, FromStr };
+use borsh::{BorshDeserialize, BorshSchema, BorshSerialize};
+use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
-use borsh::{BorshSerialize, BorshDeserialize, BorshSchema};
-use serde::{Serialize, Deserialize};
+use std::fmt;
+use std::str::{self, FromStr};
 
 use crate::errors;
 
@@ -16,12 +16,11 @@ pub struct RpcHexData(Vec<u8>);
 
 impl fmt::Display for RpcHexData {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-
         // an empty vector is allowed
         if self.0.is_empty() {
             return f.write_str("");
         }
-        
+
         let mut hex = vec![0u8; self.0.len() * 2];
         faster_hex::hex_encode(&self.0, &mut hex.as_mut_slice()).expect("The output is exactly twice the size of the input");
         f.write_str(str::from_utf8(&hex).expect("hex is always valid UTF-8"))
@@ -36,7 +35,7 @@ impl From<&Vec<u8>> for RpcHexData {
 
 impl From<RpcHexData> for String {
     fn from(item: RpcHexData) -> String {
-      item.to_string()
+        item.to_string()
     }
 }
 
@@ -44,13 +43,12 @@ impl FromStr for RpcHexData {
     type Err = errors::RpcError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-
         // an empty string is allowed
         if s.is_empty() {
             return Ok(RpcHexData(vec![]));
         }
 
-        let mut bytes = vec![0u8; s.len()/2];
+        let mut bytes = vec![0u8; s.len() / 2];
         faster_hex::hex_decode(s.as_bytes(), bytes.as_mut_slice())?;
         Ok(RpcHexData(bytes))
     }
@@ -75,7 +73,6 @@ impl AsRef<Vec<u8>> for RpcHexData {
         &self.0
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -106,6 +103,6 @@ mod tests {
         let code = "fedcba9876543210";
         let key = RpcHexData::try_from(code).unwrap();
         assert_eq!(key.to_string().to_lowercase(), code);
-        assert_eq!(key.as_ref().len(), code.len()/2);
+        assert_eq!(key.as_ref().len(), code.len() / 2);
     }
 }

@@ -1,6 +1,6 @@
-use std::sync::Arc;
 use rpc_core::server::service::RpcApi;
 use rpc_grpc::server;
+use std::sync::Arc;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -11,7 +11,5 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let addr = "[::1]:10000".parse().unwrap();
     let server_handle = server::run_server(addr, core_service);
-    server_handle
-        .await?
-        .map_err(|x| x.into())
+    server_handle.await?.map_err(|x| x.into())
 }

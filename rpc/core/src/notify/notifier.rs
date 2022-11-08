@@ -1,40 +1,23 @@
-use std::{
-    sync::{Arc, Mutex, atomic::{AtomicBool, Ordering}}, 
+use super::{
+    channel::{Channel, NotificationChannel},
+    collector::DynCollector,
+    events::{EventArray, EventType, EVENT_TYPE_ARRAY},
+    listener::{Listener, ListenerID, ListenerReceiverSide, ListenerSenderSide, SendingChangedUtxo},
+    message::{DispatchMessage, SubscribeMessage},
+    result::Result,
+    subscriber::{Subscriber, SubscriptionManager},
 };
+use crate::{Notification, NotificationType, RpcResult};
 use ahash::AHashMap;
 use async_std::channel::{Receiver, Sender};
 use async_trait::async_trait;
-use crate::{Notification, NotificationType, RpcResult};
-use super::{
-    channel::{
-        Channel,
-        NotificationChannel
-    },
-    collector::DynCollector,
-    events::{
-        EventArray,
-        EventType,
-        EVENT_TYPE_ARRAY,
-    },
-    listener::{
-        ListenerID,
-        Listener,
-        ListenerReceiverSide,
-        ListenerSenderSide, SendingChangedUtxo
-    },
-    message::{
-        DispatchMessage,
-        SubscribeMessage,
-    },
-    result::Result,
-    subscriber::{
-        SubscriptionManager,
-        Subscriber
-    },
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc, Mutex,
 };
 
 /// A notification sender
-/// 
+///
 /// Manage a collection of [Listener] and, for each one, a set of events to be notified.
 /// Actually notify the listeners of incoming events.
 #[derive(Debug)]
@@ -43,14 +26,8 @@ pub struct Notifier {
 }
 
 impl Notifier {
-    pub fn new(
-        collector: Option<DynCollector>,
-        subscriber: Option<Subscriber>,
-        sending_changed_utxos: SendingChangedUtxo,
-    ) -> Self {
-        Self {
-            inner: Arc::new(Inner::new(collector, subscriber, sending_changed_utxos)),
-        }
+    pub fn new(collector: Option<DynCollector>, subscriber: Option<Subscriber>, sending_changed_utxos: SendingChangedUtxo) -> Self {
+        Self { inner: Arc::new(Inner::new(collector, subscriber, sending_changed_utxos)) }
     }
 
     pub fn start(self: Arc<Self>) {
@@ -82,13 +59,15 @@ impl Notifier {
     pub async fn stop(&self) -> Result<()> {
         self.inner.clone().stop().await
     }
-
 }
 
 #[async_trait]
 impl SubscriptionManager for Notifier {
     async fn start_notify(self: Arc<Self>, id: ListenerID, notification_type: NotificationType) -> RpcResult<()> {
-        println!("[Notifier] as subscription manager start sending to listener {0} notifications of type {1:?}", id, notification_type);
+        println!(
+            "[Notifier] as subscription manager start sending to listener {0} notifications of type {1:?}",
+            id, notification_type
+        );
         self.inner.clone().start_notify(id, notification_type)?;
         Ok(())
     }
@@ -113,17 +92,13 @@ struct Inner {
     /// Collector & Subscriber
     collector: Arc<Option<DynCollector>>,
     subscriber: Arc<Option<Arc<Subscriber>>>,
-    
+
     /// How to handle UtxoChanged notifications
     sending_changed_utxos: SendingChangedUtxo,
 }
 
 impl Inner {
-    fn new(
-        collector: Option<DynCollector>,
-        subscriber: Option<Subscriber>,
-        sending_changed_utxos: SendingChangedUtxo,
-    ) -> Self {
+    fn new(collector: Option<DynCollector>, subscriber: Option<Subscriber>, sending_changed_utxos: SendingChangedUtxo) -> Self {
         let subscriber = subscriber.map(|x| Arc::new(x));
         Self {
             listeners: Arc::new(Mutex::new(AHashMap::new())),
@@ -154,19 +129,14 @@ impl Inner {
     }
 
     /// Launch a dispatch task for an event type.
-    /// 
+    ///
     /// Implementation note:
     /// The separation by event type allows to keep an internal map
     /// with all listeners willing to receive notification of the
     /// corresponding type. The dispatcher receives and execute messages
     /// instructing to modify the map. This happens without blocking
     /// the whole notifier.
-    fn dispatch_task(
-        &self,
-        event: EventType,
-        shutdown_trigger: triggered::Trigger,
-        dispatch_rx: Receiver<DispatchMessage>)
-    {
+    fn dispatch_task(&self, event: EventType, shutdown_trigger: triggered::Trigger, dispatch_rx: Receiver<DispatchMessage>) {
         let dispatcher_is_running = self.dispatcher_is_running[event].clone();
         dispatcher_is_running.store(true, Ordering::SeqCst);
 
@@ -181,30 +151,30 @@ impl Inner {
 
         // TODO: feed the listeners map with pre-existing self.listeners having event active
         // This is necessary for the correct handling of repeating start/stop cycles.
-        
+
         workflow_core::task::spawn(async move {
             println!("[Notifier] dispatch_task spawned");
-            
+
             fn send_subscribe_message(send_subscriber: Sender<SubscribeMessage>, message: SubscribeMessage) {
                 println!("[Notifier] dispatch_task send subscribe message: {:?}", message);
                 match send_subscriber.try_send(message) {
-                    Ok(_) => {},
+                    Ok(_) => {}
                     Err(err) => {
                         println!("[Notifier] sending subscribe message error: {:?}", err);
-                    },
+                    }
                 }
             }
 
             // We will send subscribe messages for all dispatch messages if event is a filtered UtxosChanged.
             // Otherwise, subscribe message is only sent when needed by the execution of the dispatche message.
-            let report_all_changes = event == EventType::UtxosChanged && sending_changed_utxos == SendingChangedUtxo::FilteredByAddress;
+            let report_all_changes =
+                event == EventType::UtxosChanged && sending_changed_utxos == SendingChangedUtxo::FilteredByAddress;
 
             let mut need_subscribe: bool = false;
             loop {
                 // If needed, send subscribe message based on listeners map being empty or not
                 if need_subscribe && has_subscriber {
                     if listeners.len() > 0 {
-
                         // TODO: handle actual utxo addresse set
 
                         send_subscribe_message(send_subscriber.as_ref().unwrap().clone(), SubscribeMessage::StartEvent(event.into()));
@@ -215,20 +185,19 @@ impl Inner {
                 let dispatch = dispatch_rx.recv().await.unwrap();
 
                 match dispatch {
-
                     DispatchMessage::Send(ref notification) => {
                         // Create a store for closed listeners to be removed from the map
                         let mut purge: Vec<ListenerID> = Vec::new();
 
                         // Broadcast the notification to all listeners
                         for (id, listener) in listeners.iter() {
-                            match listener.try_send(notification.clone()){
-                                Ok(_) => {},
+                            match listener.try_send(notification.clone()) {
+                                Ok(_) => {}
                                 Err(_) => {
                                     if listener.is_closed() {
                                         purge.push(*id);
                                     }
-                                },
+                                }
                             }
                         }
 
@@ -239,7 +208,7 @@ impl Inner {
                         for id in purge {
                             listeners.remove(&id);
                         }
-                    },
+                    }
 
                     DispatchMessage::AddListener(id, listener) => {
                         // Subscription needed if a first listener is added or if reporting any change
@@ -247,22 +216,19 @@ impl Inner {
 
                         // We don't care whether this is an insertion or a replacement
                         listeners.insert(id, listener.clone());
-
-                    },
+                    }
 
                     DispatchMessage::RemoveListener(id) => {
                         listeners.remove(&id);
 
                         // Feedback needed if no more listeners are present or if reporting any change
                         need_subscribe = listeners.len() == 0 || report_all_changes;
-                    },
+                    }
 
                     DispatchMessage::Shutdown => {
                         break;
-                    },
-
+                    }
                 }
-
             }
             dispatcher_is_running.store(false, Ordering::SeqCst);
             shutdown_trigger.trigger();
@@ -301,19 +267,14 @@ impl Inner {
         let event: EventType = (&notification_type).into();
         let mut listeners = self.listeners.lock().unwrap();
         if let Some(listener) = listeners.get_mut(&id) {
-
             // Any mutation in the listener will trigger a dispatch of a brand new ListenerSenderSide
             // eventually creating or replacing this listener in the matching dispatcher.
 
             if listener.toggle(notification_type, true) {
-                let listener_sender_side = ListenerSenderSide::new(
-                    listener,
-                    self.sending_changed_utxos,
-                    event);
+                let listener_sender_side = ListenerSenderSide::new(listener, self.sending_changed_utxos, event);
                 let msg = DispatchMessage::AddListener(listener.id(), Arc::new(listener_sender_side));
                 self.clone().try_send_dispatch(event, msg)?;
             }
-
         }
         Ok(())
     }
@@ -350,9 +311,9 @@ impl Inner {
                     Ok(_) => {
                         let mut dispatcher_shutdown_listener = self.dispatcher_shutdown_listener.lock().unwrap();
                         let shutdown_listener = dispatcher_shutdown_listener[event].take().unwrap();
-                        shutdown_listener.await;    
-                    },
-                    Err(err) => { result = Err(err) },
+                        shutdown_listener.await;
+                    }
+                    Err(err) => result = Err(err),
                 }
             }
         }
@@ -369,5 +330,4 @@ impl Inner {
         }
         Ok(())
     }
-
 }

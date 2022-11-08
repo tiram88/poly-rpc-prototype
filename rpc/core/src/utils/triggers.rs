@@ -1,4 +1,4 @@
-pub use triggered::{Trigger, Listener};
+pub use triggered::{Listener, Trigger};
 
 /// Wrapper containing a single Trigger instance
 #[derive(Debug, Clone)]
@@ -9,11 +9,8 @@ pub struct SingleTrigger {
 
 impl SingleTrigger {
     pub fn new() -> SingleTrigger {
-        let (trigger,listener) = triggered::trigger();
-        SingleTrigger { 
-            trigger,
-            listener,
-        }
+        let (trigger, listener) = triggered::trigger();
+        SingleTrigger { trigger, listener }
     }
 }
 
@@ -27,9 +24,6 @@ pub struct DuplexTrigger {
 
 impl DuplexTrigger {
     pub fn new() -> DuplexTrigger {
-        DuplexTrigger {
-            request: SingleTrigger::new(),
-            response: SingleTrigger::new(),
-        }
+        DuplexTrigger { request: SingleTrigger::new(), response: SingleTrigger::new() }
     }
 }

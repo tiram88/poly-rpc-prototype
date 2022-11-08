@@ -1,10 +1,10 @@
-use std::fmt::Display;
-use std::sync::Arc;
-use async_std::channel::{Sender,Receiver};
-use serde::{Deserialize, Serialize};
-use borsh::{BorshSerialize, BorshDeserialize, BorshSchema};
 use crate::model::message::*;
 use crate::stubs::*;
+use async_std::channel::{Receiver, Sender};
+use borsh::{BorshDeserialize, BorshSchema, BorshSerialize};
+use serde::{Deserialize, Serialize};
+use std::fmt::Display;
+use std::sync::Arc;
 
 #[derive(Clone, Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
 pub enum NotificationType {
@@ -17,7 +17,6 @@ pub enum NotificationType {
     VirtualDaaScoreChanged,
     PruningPointUTXOSetOverride,
     NewBlockTemplate,
-    
 }
 
 impl From<&Notification> for NotificationType {
@@ -52,7 +51,9 @@ pub enum Notification {
 impl Display for Notification {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Notification::BlockAdded(ref notification) => write!(f, "Notification BlockAdded with hash {}", notification.block.verbose_data.hash),
+            Notification::BlockAdded(ref notification) => {
+                write!(f, "Notification BlockAdded with hash {}", notification.block.verbose_data.hash)
+            }
             _ => write!(f, "Notification whith unimplemented type"),
             // Notification::VirtualSelectedParentChainChanged(_) => todo!(),
             // Notification::FinalityConflict(_) => todo!(),

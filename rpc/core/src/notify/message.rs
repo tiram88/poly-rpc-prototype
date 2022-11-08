@@ -1,12 +1,6 @@
-use std::sync::Arc;
+use super::listener::{ListenerID, ListenerSenderSide};
 use crate::{Notification, NotificationType};
-use super::{
-    listener::{
-        ListenerID,
-        ListenerSenderSide
-    },
-};
-
+use std::sync::Arc;
 
 #[derive(Clone, Debug)]
 pub(crate) enum DispatchMessage {

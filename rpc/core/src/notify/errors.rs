@@ -5,7 +5,6 @@ pub type BoxedStdError = Box<(dyn std::error::Error + Sync + std::marker::Send +
 
 #[derive(Debug, Error)]
 pub enum Error {
-
     #[error("Error: {0}")]
     String(String),
 
@@ -14,7 +13,6 @@ pub enum Error {
 
     #[error("Notification: channel send error")]
     ChannelSendError,
-
 }
 
 impl From<Error> for RpcError {

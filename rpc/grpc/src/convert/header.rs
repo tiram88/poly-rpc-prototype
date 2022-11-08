@@ -1,6 +1,6 @@
-use std::str::FromStr;
-use rpc_core::{RpcHash, RpcError, RpcResult};
 use crate::protowire;
+use rpc_core::{RpcError, RpcHash, RpcResult};
+use std::str::FromStr;
 
 // ----------------------------------------------------------------------------
 // rpc_core to protowire
@@ -10,10 +10,7 @@ impl From<&rpc_core::RpcBlockHeader> for protowire::RpcBlockHeader {
     fn from(item: &rpc_core::RpcBlockHeader) -> Self {
         Self {
             version: item.version,
-            parents: item.parents
-                .iter()
-                .map(|x| protowire::RpcBlockLevelParents::from(x))
-                .collect(),
+            parents: item.parents.iter().map(|x| protowire::RpcBlockLevelParents::from(x)).collect(),
             hash_merkle_root: item.hash_merkle_root.to_string(),
             accepted_id_merkle_root: item.accepted_id_merkle_root.to_string(),
             utxo_commitment: item.utxo_commitment.to_string(),
@@ -30,12 +27,7 @@ impl From<&rpc_core::RpcBlockHeader> for protowire::RpcBlockHeader {
 
 impl From<&rpc_core::RpcBlockLevelParents> for protowire::RpcBlockLevelParents {
     fn from(item: &rpc_core::RpcBlockLevelParents) -> Self {
-        Self {
-            parent_hashes: item.parent_hashes
-                .iter()
-                .map(|x| x.to_string())
-                .collect(),
-        }
+        Self { parent_hashes: item.parent_hashes.iter().map(|x| x.to_string()).collect() }
     }
 }
 
@@ -48,7 +40,8 @@ impl TryFrom<&protowire::RpcBlockHeader> for rpc_core::RpcBlockHeader {
     fn try_from(item: &protowire::RpcBlockHeader) -> RpcResult<Self> {
         Ok(Self {
             version: item.version,
-            parents: item.parents
+            parents: item
+                .parents
                 .iter()
                 .map(|x| rpc_core::RpcBlockLevelParents::try_from(x))
                 .collect::<RpcResult<Vec<rpc_core::RpcBlockLevelParents>>>()?,
@@ -70,10 +63,11 @@ impl TryFrom<&protowire::RpcBlockLevelParents> for rpc_core::RpcBlockLevelParent
     type Error = RpcError;
     fn try_from(item: &protowire::RpcBlockLevelParents) -> RpcResult<Self> {
         Ok(Self {
-            parent_hashes: item.parent_hashes
+            parent_hashes: item
+                .parent_hashes
                 .iter()
                 .map(|x| RpcHash::from_str(x))
-                .collect::<Result<Vec<rpc_core::RpcHash>, faster_hex::Error>>()?
-         })
+                .collect::<Result<Vec<rpc_core::RpcHash>, faster_hex::Error>>()?,
+        })
     }
 }

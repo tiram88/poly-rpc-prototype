@@ -1,17 +1,15 @@
+use borsh::{BorshDeserialize, BorshSchema, BorshSerialize};
 use serde::{Deserialize, Serialize};
-use borsh::{BorshSerialize, BorshDeserialize, BorshSchema};
 
 use crate::RpcHexData;
-
 
 #[derive(Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
 pub enum NetworkType {
     Mainnet,
     Testnet,
     Simnet,
-    Devnet
+    Devnet,
 }
-
 
 #[derive(Clone, Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
 pub struct Address;
@@ -25,7 +23,6 @@ pub struct UtxosChangedNotification {
 
 #[derive(Clone, Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
 pub struct VirtualSelectedParentChainChangedNotification;
-
 
 #[derive(Clone, Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
 pub struct FinalityConflictNotification;

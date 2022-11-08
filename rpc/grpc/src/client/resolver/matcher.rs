@@ -1,10 +1,6 @@
 use crate::protowire::{
-    KaspadRequest, KaspadResponse,
-    kaspad_response, 
-    self,
-    GetBlockRequestMessage, GetBlockResponseMessage, kaspad_request,
+    self, kaspad_request, kaspad_response, GetBlockRequestMessage, GetBlockResponseMessage, KaspadRequest, KaspadResponse,
 };
-
 
 pub(crate) trait Matcher<T> {
     fn is_matching(&self, response: T) -> bool;

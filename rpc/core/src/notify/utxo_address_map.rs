@@ -1,13 +1,12 @@
 extern crate derive_more;
-use derive_more::Deref;
 use ahash::AHashMap;
+use derive_more::Deref;
 
 use crate::stubs::RpcUtxoAddress;
 
-
 /// A newtype allowing conversion Vec<RpcUtxoAddress> to AHashMap<RpcUtxoAddress, ()>.
 #[derive(Clone, Debug, Deref)]
-pub struct RpcUtxoAddressMap (AHashMap<RpcUtxoAddress, ()>);
+pub struct RpcUtxoAddressMap(AHashMap<RpcUtxoAddress, ()>);
 
 impl RpcUtxoAddressMap {
     pub fn new() -> Self {
@@ -21,12 +20,10 @@ impl From<&Vec<RpcUtxoAddress>> for RpcUtxoAddressMap {
     }
 }
 
-
 /// Two [RpcUtxoAddressMap] are equal if there respective key set
 /// are identical no matter the order of keys in sets.
 impl PartialEq for RpcUtxoAddressMap {
     fn eq(&self, other: &Self) -> bool {
-        self.0.len() == other.0.len() &&
-        self.0.keys().all(|k| other.0.contains_key(k))
+        self.0.len() == other.0.len() && self.0.keys().all(|k| other.0.contains_key(k))
     }
 }

@@ -1,33 +1,35 @@
-use std::{sync::{Arc, atomic::{AtomicBool, Ordering}}, time::{Duration, SystemTime, UNIX_EPOCH}};
-use async_std::channel::Receiver;
-use consensus_core::{stubs::{
-    Notification as ConsensusNotification, BlockAddedNotification,
-}, block::Block, header::Header, blockhash::new_unique};
 use crate::channel::Channel;
-
-
+use async_std::channel::Receiver;
+use consensus_core::{
+    block::Block,
+    blockhash::new_unique,
+    header::Header,
+    stubs::{BlockAddedNotification, Notification as ConsensusNotification},
+};
+use std::{
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
+    time::{Duration, SystemTime, UNIX_EPOCH},
+};
 
 pub type ConsensusNotificationChannel = Channel<Arc<ConsensusNotification>>;
 
 pub struct RandomBlockProducer {
     channel: ConsensusNotificationChannel,
     terminate: Arc<AtomicBool>,
-
 }
 
 impl RandomBlockProducer {
-
     pub fn new() -> Self {
-        Self {
-            channel: Channel::default(),
-            terminate: Arc::new(AtomicBool::new(false)),
-        }
+        Self { channel: Channel::default(), terminate: Arc::new(AtomicBool::new(false)) }
     }
-    
+
     pub async fn start(self: &Arc<Self>) -> Receiver<Arc<ConsensusNotification>> {
         let sender = self.channel.sender();
         let terminate = self.terminate.clone();
-        
+
         tokio::spawn(async move {
             loop {
                 tokio::time::sleep(Duration::from_millis(1000)).await;
@@ -51,14 +53,14 @@ impl RandomBlockProducer {
                 };
 
                 println!("Emit block {0}", block.header.hash.clone());
-                let notification: ConsensusNotification = ConsensusNotification::BlockAdded(BlockAddedNotification{block});
+                let notification: ConsensusNotification = ConsensusNotification::BlockAdded(BlockAddedNotification { block });
                 match sender.try_send(Arc::new(notification)) {
                     Ok(_) => (),
                     Err(err) => {
                         println!("Emit error: {:?}", err);
-                    },
+                    }
                 }
-                
+
                 if terminate.load(Ordering::SeqCst) {
                     break;
                 }
@@ -72,4 +74,3 @@ impl RandomBlockProducer {
         self.terminate.store(true, Ordering::SeqCst)
     }
 }
-

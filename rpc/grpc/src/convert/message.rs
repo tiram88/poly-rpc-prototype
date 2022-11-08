@@ -1,8 +1,6 @@
-use std::str::FromStr;
-use rpc_core::{
-    RpcHash, RpcError, RpcResult
-};
 use crate::protowire;
+use rpc_core::{RpcError, RpcHash, RpcResult};
+use std::str::FromStr;
 
 // ----------------------------------------------------------------------------
 // rpc_core to protowire
@@ -10,10 +8,7 @@ use crate::protowire;
 
 impl From<&rpc_core::GetBlockRequest> for protowire::GetBlockRequestMessage {
     fn from(item: &rpc_core::GetBlockRequest) -> Self {
-        Self {
-            hash: item.hash.to_string(),
-            include_transactions: item.include_transactions,
-        }
+        Self { hash: item.hash.to_string(), include_transactions: item.include_transactions }
     }
 }
 
@@ -34,13 +29,8 @@ impl From<RpcResult<&rpc_core::GetBlockResponse>> for protowire::GetBlockRespons
         //     }
         // };
         Self {
-            block: item
-                .as_ref()
-                .map(|x| protowire::RpcBlock::from(&x.block))
-                .ok(),
-            error: item
-                .map_err(|x| protowire::RpcError::from(x))
-                .err(),
+            block: item.as_ref().map(|x| protowire::RpcBlock::from(&x.block)).ok(),
+            error: item.map_err(|x| protowire::RpcError::from(x)).err(),
         }
     }
 }
@@ -53,11 +43,7 @@ impl From<&rpc_core::NotifyBlockAddedRequest> for protowire::NotifyBlockAddedReq
 
 impl From<RpcResult<&rpc_core::NotifyBlockAddedResponse>> for protowire::NotifyBlockAddedResponseMessage {
     fn from(item: RpcResult<&rpc_core::NotifyBlockAddedResponse>) -> Self {
-        Self {
-            error: item
-                .map_err(|x| protowire::RpcError::from(x))
-                .err(),
-        }
+        Self { error: item.map_err(|x| protowire::RpcError::from(x)).err() }
     }
 }
 
@@ -85,7 +71,7 @@ impl From<RpcResult<&rpc_core::GetInfoResponse>> for protowire::GetInfoResponseM
                 is_utxo_indexed: false,
                 is_synced: false,
                 error: Some(err.into()),
-            }
+            },
         }
     }
 }
@@ -97,10 +83,7 @@ impl From<RpcResult<&rpc_core::GetInfoResponse>> for protowire::GetInfoResponseM
 impl TryFrom<&protowire::GetBlockRequestMessage> for rpc_core::GetBlockRequest {
     type Error = RpcError;
     fn try_from(item: &protowire::GetBlockRequestMessage) -> RpcResult<Self> {
-        Ok(Self {
-            hash: RpcHash::from_str(&item.hash)?,
-            include_transactions: item.include_transactions,
-        })
+        Ok(Self { hash: RpcHash::from_str(&item.hash)?, include_transactions: item.include_transactions })
     }
 }
 
@@ -117,15 +100,20 @@ impl TryFrom<&protowire::GetBlockResponseMessage> for rpc_core::GetBlockResponse
         //         .expect("in absence of a block, an error message is present")
         //         .into())
         // }
-        item.block.as_ref()
+        item.block
+            .as_ref()
             .map_or_else(
                 //|| Err(item.error.as_ref().expect("in absence of a block, an error message is present").into()),
-                || item.error
-                                .as_ref()
-                                .map_or(Err(RpcError::MissingRpcFieldError("GetBlockResponseMessage".to_string(), "error".to_string())), |x| Err(x.into())),
-                |x| rpc_core::RpcBlock::try_from(x))
-            .map(|x| rpc_core::GetBlockResponse { block: x }
-        )
+                || {
+                    item.error
+                        .as_ref()
+                        .map_or(Err(RpcError::MissingRpcFieldError("GetBlockResponseMessage".to_string(), "error".to_string())), |x| {
+                            Err(x.into())
+                        })
+                },
+                |x| rpc_core::RpcBlock::try_from(x),
+            )
+            .map(|x| rpc_core::GetBlockResponse { block: x })
     }
 }
 
@@ -139,8 +127,7 @@ impl TryFrom<&protowire::NotifyBlockAddedRequestMessage> for rpc_core::NotifyBlo
 impl TryFrom<&protowire::NotifyBlockAddedResponseMessage> for rpc_core::NotifyBlockAddedResponse {
     type Error = RpcError;
     fn try_from(item: &protowire::NotifyBlockAddedResponseMessage) -> RpcResult<Self> {
-        item.error.as_ref()
-            .map_or(Ok(rpc_core::NotifyBlockAddedResponse{}), |x| Err(x.into()))
+        item.error.as_ref().map_or(Ok(rpc_core::NotifyBlockAddedResponse {}), |x| Err(x.into()))
     }
 }
 

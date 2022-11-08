@@ -1,4 +1,4 @@
-use async_std::channel::{Sender, Receiver, unbounded};
+use async_std::channel::{unbounded, Receiver, Sender};
 
 /// Multiple producers multiple consumers channel
 #[derive(Clone, Debug)]
@@ -9,13 +9,10 @@ pub struct Channel<T> {
 
 impl<T> Channel<T> {
     pub fn new(channel: (Sender<T>, Receiver<T>)) -> Channel<T> {
-        Self {
-            sender: channel.0,
-            receiver: channel.1,
-        }
+        Self { sender: channel.0, receiver: channel.1 }
     }
 
-    pub fn sender(&self) ->Sender<T> {
+    pub fn sender(&self) -> Sender<T> {
         self.sender.clone()
     }
 

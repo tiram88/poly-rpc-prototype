@@ -1,10 +1,6 @@
 use std::sync::Arc;
 
-use crate::{
-    Notification,
-    BlockAddedNotification,
-    notify::collector::ArcConvert,
-};
+use crate::{notify::collector::ArcConvert, BlockAddedNotification, Notification};
 use consensus_core::stubs;
 
 // ----------------------------------------------------------------------------
@@ -14,18 +10,14 @@ use consensus_core::stubs;
 impl From<&stubs::Notification> for Notification {
     fn from(item: &stubs::Notification) -> Self {
         match item {
-            stubs::Notification::BlockAdded(msg) => {
-                Notification::BlockAdded(msg.into())
-            },
+            stubs::Notification::BlockAdded(msg) => Notification::BlockAdded(msg.into()),
         }
     }
 }
 
 impl From<&stubs::BlockAddedNotification> for BlockAddedNotification {
     fn from(item: &stubs::BlockAddedNotification) -> Self {
-        Self {
-            block: (&item.block).into(),
-        }
+        Self { block: (&item.block).into() }
     }
 }
 
@@ -39,13 +31,10 @@ impl From<ArcConvert<Notification>> for Arc<Notification> {
 
 impl From<ArcConvert<stubs::Notification>> for Arc<Notification> {
     fn from(item: ArcConvert<stubs::Notification>) -> Self {
-        Arc::new(
-            (&**item).into()
-        )
+        Arc::new((&**item).into())
     }
 }
 
 // ----------------------------------------------------------------------------
 // rpc_core to consensus_core
 // ----------------------------------------------------------------------------
-

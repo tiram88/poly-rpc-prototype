@@ -1,12 +1,12 @@
 use std::fmt::Debug;
-use std::sync::{Arc};
+use std::sync::Arc;
 
-use crate::stubs::RpcUtxoAddress;
-use crate::{NotificationReceiver, Notification, NotificationSender, NotificationType};
-use super::events::{EventArray, EventType};
 use super::channel::NotificationChannel;
+use super::events::{EventArray, EventType};
 use super::result::Result;
 use super::utxo_address_map::RpcUtxoAddressMap;
+use crate::stubs::RpcUtxoAddress;
+use crate::{Notification, NotificationReceiver, NotificationSender, NotificationType};
 
 // TODO: consider the use of a newtype instead
 pub type ListenerID = u64;
@@ -20,15 +20,14 @@ pub enum SendingChangedUtxo {
     FilteredByAddress,
 }
 
-
 /// A listener of [`super::notifier::Notifier`] notifications.
-/// 
+///
 /// ### Implementation details
-/// 
+///
 /// This struct is not asyn protected against mutations.
 /// It is the responsability of code using a [Listener] to guard memory
 /// before calling toggle.
-/// 
+///
 /// Any ListenerSenderSide derived from a [Listener] should also be rebuilt
 /// upon relevant mutation by a call to toggle.
 #[derive(Debug)]
@@ -42,12 +41,7 @@ pub(crate) struct Listener {
 impl Listener {
     pub(crate) fn new(id: ListenerID, channel: Option<NotificationChannel>) -> Listener {
         let channel = channel.unwrap_or_default();
-        Self {
-            id,
-            channel,
-            active_event: EventArray::default(),
-            utxo_addresses: RpcUtxoAddressMap::new(),
-        }
+        Self { id, channel, active_event: EventArray::default(), utxo_addresses: RpcUtxoAddressMap::new() }
     }
 
     pub(crate) fn id(&self) -> ListenerID {
@@ -94,7 +88,6 @@ impl Listener {
     pub(crate) fn is_closed(&self) -> bool {
         self.channel.is_closed()
     }
-
 }
 
 /// Contains the receiver side of a listener
@@ -106,10 +99,7 @@ pub struct ListenerReceiverSide {
 
 impl From<&Listener> for ListenerReceiverSide {
     fn from(item: &Listener) -> Self {
-        Self {
-            id: item.id(),
-            recv_channel: item.channel.receiver(),
-        }
+        Self { id: item.id(), recv_channel: item.channel.receiver() }
     }
 }
 
@@ -121,35 +111,29 @@ pub(crate) struct ListenerSenderSide {
 }
 
 impl ListenerSenderSide {
-
     pub(crate) fn new(listener: &Listener, sending_changed_utxos: SendingChangedUtxo, event: EventType) -> Self {
         match event {
-            EventType::UtxosChanged if sending_changed_utxos == SendingChangedUtxo::FilteredByAddress => {
-                Self {
-                    send_channel: listener.channel.sender(),
-                    filter: Box::new(FilterUtxoAddress{
-                        utxos_addresses: listener.utxo_addresses.clone()
-                    }),
-                }
+            EventType::UtxosChanged if sending_changed_utxos == SendingChangedUtxo::FilteredByAddress => Self {
+                send_channel: listener.channel.sender(),
+                filter: Box::new(FilterUtxoAddress { utxos_addresses: listener.utxo_addresses.clone() }),
             },
-            _ => {
-                Self {
-                    send_channel: listener.channel.sender(),
-                    filter: Box::new(Unfiltered{}),
-                }
-            },
+            _ => Self { send_channel: listener.channel.sender(), filter: Box::new(Unfiltered {}) },
         }
     }
 
     /// Try to send a notification.
-    /// 
+    ///
     /// If the notification does not meet requirements (see [`Notification::UtxosChanged`]) returns `Ok(false)`,
     /// otherwise returns `Ok(true)`.
     pub(crate) fn try_send(&self, notification: Arc<Notification>) -> Result<bool> {
         if self.filter.filter(notification.clone()) {
             match self.send_channel.try_send(notification) {
-                Ok(_) => { return Ok(true); },
-                Err(err) => { return Err(err.into()); },
+                Ok(_) => {
+                    return Ok(true);
+                }
+                Err(err) => {
+                    return Err(err.into());
+                }
             }
         }
         Ok(false)
@@ -158,7 +142,6 @@ impl ListenerSenderSide {
     pub(crate) fn is_closed(&self) -> bool {
         self.send_channel.is_closed()
     }
-
 }
 
 trait InnerFilter {

@@ -1,20 +1,21 @@
+use crate::{protowire::KaspadResponse, server::StatusResult};
+use futures::pin_mut;
+use rpc_core::{
+    notify::{
+        listener::{ListenerID, ListenerReceiverSide},
+        notifier::Notifier,
+    },
+    utils::triggers::DuplexTrigger,
+};
 use std::{
     collections::HashMap,
     net::SocketAddr,
-    sync::{Arc, atomic::{AtomicBool, Ordering}},
-};
-use futures::{
-    pin_mut,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
 };
 use tokio::sync::mpsc;
-use rpc_core::{notify::{
-    listener::{ListenerReceiverSide, ListenerID},
-    notifier::Notifier
-}, utils::triggers::DuplexTrigger};
-use crate::{
-    protowire::KaspadResponse,
-    server::StatusResult,
-};
 
 pub type GrpcSender = mpsc::Sender<StatusResult<KaspadResponse>>;
 
@@ -27,11 +28,7 @@ pub(crate) struct GrpcConnection {
 }
 
 impl GrpcConnection {
-    pub(crate) fn new (
-        address: SocketAddr,
-        sender: GrpcSender,
-        notifiy_listener: ListenerReceiverSide
-    ) -> Self {
+    pub(crate) fn new(address: SocketAddr, sender: GrpcSender, notifiy_listener: ListenerReceiverSide) -> Self {
         Self {
             _address: address,
             sender,
@@ -58,7 +55,7 @@ impl GrpcConnection {
     async fn stop(self: Arc<Self>) {
         self.stop_collect().await
     }
-    
+
     fn collect_task(&self) {
         let listener_id = self.notifiy_listener.id;
         let sender = self.sender.clone();
@@ -70,7 +67,6 @@ impl GrpcConnection {
         tokio::task::spawn(async move {
             println!("[GrpcConnection] collect_task listener id {0}: start", listener_id);
             loop {
-
                 let shutdown = collect_shutdown.request.listener.clone();
                 pin_mut!(shutdown);
 
@@ -93,14 +89,11 @@ impl GrpcConnection {
                         }
                     }
                 }
-
             }
             collect_is_running.store(false, Ordering::SeqCst);
             collect_shutdown.response.trigger.trigger();
             println!("[GrpcConnection] collect_task listener id {0}: stop", listener_id);
         });
-        
-
     }
 
     async fn stop_collect(&self) {
@@ -111,7 +104,6 @@ impl GrpcConnection {
         self.collect_shutdown.request.trigger.trigger();
         self.collect_shutdown.response.listener.clone().await;
     }
-
 }
 
 pub(crate) struct GrpcConnectionManager {
@@ -121,24 +113,17 @@ pub(crate) struct GrpcConnectionManager {
 
 impl GrpcConnectionManager {
     pub fn new(notifier: Arc<Notifier>) -> Self {
-        Self {
-            connections: HashMap::new(),
-            notifier,
-        }
+        Self { connections: HashMap::new(), notifier }
     }
 
     pub(crate) async fn register(&mut self, address: SocketAddr, sender: GrpcSender) -> ListenerID {
         let notifiy_listener = self.notifier.clone().register_new_listener(None);
         println!("register a new gRPC connection from: {0} with listener id {1}", address, notifiy_listener.id);
-        let connection = Arc::new(GrpcConnection::new(
-            address,
-            sender,
-            notifiy_listener
-        ));
+        let connection = Arc::new(GrpcConnection::new(address, sender, notifiy_listener));
         match self.connections.insert(address.clone(), connection.clone()) {
             Some(_prev) => {
                 //prev.sender.closed().await
-            },
+            }
             None => {}
         }
         connection.clone().start();

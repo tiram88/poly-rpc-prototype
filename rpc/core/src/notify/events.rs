@@ -1,4 +1,4 @@
-use std::{ops::{Index, IndexMut}};
+use std::ops::{Index, IndexMut};
 
 use crate::{Notification, NotificationType};
 
@@ -83,10 +83,9 @@ impl From<&NotificationType> for EventType {
     }
 }
 
-
-/// Generic array with [`EventType`] strongly-typed index 
+/// Generic array with [`EventType`] strongly-typed index
 #[derive(Default, Clone, Copy, Debug)]
-pub(crate) struct EventArray<T> ([T; EVENT_COUNT]);
+pub(crate) struct EventArray<T>([T; EVENT_COUNT]);
 
 impl<T> EventArray<T> {
     pub(crate) fn _len(&self) -> usize {
@@ -104,7 +103,6 @@ impl<T> Index<EventType> for EventArray<T> {
 }
 
 impl<T> IndexMut<EventType> for EventArray<T> {
-
     fn index_mut(&mut self, index: EventType) -> &mut Self::Output {
         let idx = index as usize;
         &mut self.0[idx]

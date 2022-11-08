@@ -3,7 +3,6 @@ use thiserror::Error;
 
 #[derive(Clone, Debug, Error)]
 pub enum RpcError {
-
     #[error("Not implemented")]
     NotImplemented,
 

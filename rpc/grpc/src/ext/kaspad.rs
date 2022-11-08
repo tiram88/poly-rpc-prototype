@@ -1,13 +1,6 @@
-use rpc_core::{
-    NotificationType,
-    api::ops::SubscribeCommand,
-};
+use rpc_core::{api::ops::SubscribeCommand, NotificationType};
 
-use crate::protowire::{
-    kaspad_request, KaspadRequest,
-    NotifyBlockAddedRequestMessage,
-    kaspad_response, KaspadResponse, 
-};
+use crate::protowire::{kaspad_request, kaspad_response, KaspadRequest, KaspadResponse, NotifyBlockAddedRequestMessage};
 
 impl KaspadRequest {
     pub fn from_notification_type(notification_type: &NotificationType, command: SubscribeCommand) -> Self {
@@ -19,11 +12,14 @@ impl kaspad_request::Payload {
     // FIXME: Enhance protowire with Subscribe Commands
     pub fn from_notification_type(notification_type: &NotificationType, _command: SubscribeCommand) -> Self {
         match notification_type {
-            NotificationType::BlockAdded => kaspad_request::Payload::NotifyBlockAddedRequest(NotifyBlockAddedRequestMessage{}),
+            NotificationType::BlockAdded => {
+                kaspad_request::Payload::NotifyBlockAddedRequest(NotifyBlockAddedRequestMessage {})
+            }
 
             // TODO: implement all other notifications
-            _ => kaspad_request::Payload::NotifyBlockAddedRequest(NotifyBlockAddedRequestMessage{}),
-
+            _ => {
+                kaspad_request::Payload::NotifyBlockAddedRequest(NotifyBlockAddedRequestMessage {})
+            }
             // NotificationType::VirtualSelectedParentChainChanged => todo!(),
             // NotificationType::FinalityConflicts => todo!(),
             // NotificationType::FinalityConflictResolved => todo!(),
@@ -49,7 +45,7 @@ impl kaspad_response::Payload {
     pub fn is_notification(&self) -> bool {
         match self {
             kaspad_response::Payload::BlockAddedNotification(_) => true,
-            _ => false
+            _ => false,
         }
     }
 }

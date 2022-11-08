@@ -1,33 +1,39 @@
-use std::{fmt::{Display, Formatter}, str::FromStr};
-use serde::{Deserialize, Serialize};
-use borsh::{BorshSerialize, BorshDeserialize, BorshSchema};
 use crate::RpcError;
-
+use borsh::{BorshDeserialize, BorshSchema, BorshSerialize};
+use serde::{Deserialize, Serialize};
+use std::{
+    fmt::{Display, Formatter},
+    str::FromStr,
+};
 
 #[derive(Clone, Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
 #[repr(u8)]
 pub enum RpcScriptClass {
     /// None of the recognized forms.
-	NonStandardTy = 0,
-    
+    NonStandardTy = 0,
+
     /// Pay to pubkey.
-	PubKeyTy = 1,
+    PubKeyTy = 1,
 
     /// Pay to pubkey ECDSA.
-	PubKeyECDSATy = 2,
+    PubKeyECDSATy = 2,
 
     /// Pay to script hash.
-	ScriptHashTy = 3,
+    ScriptHashTy = 3,
 }
 
+const NON_STANDARD_TY: &str = "nonstandard";
+const PUB_KEY_TY: &str = "pubkey";
+const PUB_KEY_ECDSA_TY: &str = "pubkeyecdsa";
+const SCRIPT_HASH_TY: &str = "scripthash";
 
 impl RpcScriptClass {
     fn as_str(&self) -> &'static str {
         match self {
-            RpcScriptClass::NonStandardTy => "nonstandard",
-            RpcScriptClass::PubKeyTy => "pubkey",
-            RpcScriptClass::PubKeyECDSATy => "pubkeyecdsa",
-            RpcScriptClass::ScriptHashTy => "scripthash",
+            RpcScriptClass::NonStandardTy => NON_STANDARD_TY,
+            RpcScriptClass::PubKeyTy => PUB_KEY_TY,
+            RpcScriptClass::PubKeyECDSATy => PUB_KEY_ECDSA_TY,
+            RpcScriptClass::ScriptHashTy => SCRIPT_HASH_TY,
         }
     }
 }
@@ -43,12 +49,12 @@ impl FromStr for RpcScriptClass {
 
     fn from_str(script_class: &str) -> Result<Self, Self::Err> {
         match script_class {
-            "nonstandard" => Ok(RpcScriptClass::NonStandardTy),
-            "pubkey" => Ok(RpcScriptClass::PubKeyTy),
-            "pubkeyecdsa" => Ok(RpcScriptClass::PubKeyECDSATy),
-            "scripthash" => Ok(RpcScriptClass::ScriptHashTy),
+            NON_STANDARD_TY => Ok(RpcScriptClass::NonStandardTy),
+            PUB_KEY_TY => Ok(RpcScriptClass::PubKeyTy),
+            PUB_KEY_ECDSA_TY => Ok(RpcScriptClass::PubKeyECDSATy),
+            SCRIPT_HASH_TY => Ok(RpcScriptClass::ScriptHashTy),
 
-            _ => Err(RpcError::InvalidRpcScriptClass(script_class.to_string()))
+            _ => Err(RpcError::InvalidRpcScriptClass(script_class.to_string())),
         }
     }
 }

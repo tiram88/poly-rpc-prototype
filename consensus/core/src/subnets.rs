@@ -1,8 +1,8 @@
-use std::str::{ self, FromStr};
 use std::fmt::{Debug, Display, Formatter};
+use std::str::{self, FromStr};
 
+use borsh::{BorshDeserialize, BorshSchema, BorshSerialize};
 use serde::{Deserialize, Serialize};
-use borsh::{BorshSerialize, BorshDeserialize, BorshSchema};
 
 /// The size of the array used to store subnetwork IDs.
 pub const SUBNETWORK_ID_SIZE: usize = 20;
