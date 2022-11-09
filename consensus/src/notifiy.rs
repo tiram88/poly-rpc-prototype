@@ -1,4 +1,3 @@
-use crate::channel::Channel;
 use async_std::channel::Receiver;
 use consensus_core::{
     block::Block,
@@ -6,6 +5,7 @@ use consensus_core::{
     header::Header,
     stubs::{BlockAddedNotification, Notification as ConsensusNotification},
 };
+use kaspa_utils::channel::Channel;
 use std::{
     sync::{
         atomic::{AtomicBool, Ordering},

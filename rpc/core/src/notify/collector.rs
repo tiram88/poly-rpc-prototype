@@ -10,10 +10,11 @@ use futures::{
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 extern crate derive_more;
-use crate::notify::{channel::Channel, collector, notifier::Notifier, result::Result};
+use crate::notify::{collector, notifier::Notifier, result::Result};
 use crate::utils::triggers::DuplexTrigger;
 use crate::Notification;
 use derive_more::Deref;
+use kaspa_utils::channel::Channel;
 
 pub type CollectorNotificationChannel<T> = Channel<Arc<T>>;
 pub type CollectorNotificationSender<T> = Sender<Arc<T>>;

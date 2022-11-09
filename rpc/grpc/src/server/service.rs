@@ -114,10 +114,9 @@ impl Rpc for RpcService {
         &self,
         request: Request<tonic::Streaming<KaspadRequest>>,
     ) -> Result<Response<Self::MessageStreamStream>, tonic::Status> {
-        let remote_addr = request.remote_addr().ok_or_else(|| tonic::Status::new(
-            tonic::Code::InvalidArgument,
-            "Incoming connection opening request has no remote address".to_string(),
-        ))?;
+        let remote_addr = request.remote_addr().ok_or_else(|| {
+            tonic::Status::new(tonic::Code::InvalidArgument, "Incoming connection opening request has no remote address".to_string())
+        })?;
 
         println!("MessageStream from {:?}", remote_addr);
 

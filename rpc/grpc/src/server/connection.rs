@@ -101,7 +101,6 @@ impl GrpcConnection {
             self.collect_shutdown.request.trigger.trigger();
             self.collect_shutdown.response.listener.clone().await;
         }
-
     }
 }
 

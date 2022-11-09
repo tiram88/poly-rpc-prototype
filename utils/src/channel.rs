@@ -29,7 +29,7 @@ impl<T> Channel<T> {
     }
 }
 
-/// Default for a [`Channel<T>`] is an unbounded
+/// Default for a [`Channel<T>`] is unbounded
 impl<T> Default for Channel<T> {
     fn default() -> Self {
         let ch = unbounded();

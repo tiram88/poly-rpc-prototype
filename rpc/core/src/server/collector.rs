@@ -1,6 +1,7 @@
-use crate::notify::{channel::Channel, collector::CollectorFrom};
+use crate::notify::collector::CollectorFrom;
 use async_std::channel::{Receiver, Sender};
 use consensus_core::stubs::Notification as ConsensusNotification;
+use kaspa_utils::channel::Channel;
 use std::sync::Arc;
 
 pub(crate) type ConsensusCollector = CollectorFrom<ConsensusNotification>;

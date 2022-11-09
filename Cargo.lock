@@ -643,6 +643,7 @@ dependencies = [
  "faster-hex",
  "futures",
  "hashes",
+ "kaspa-utils",
  "rand 0.8.5",
  "serde",
  "thiserror",
@@ -1329,6 +1330,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "kaspa-utils"
+version = "0.1.0"
+dependencies = [
+ "async-std",
+]
+
+[[package]]
 name = "keccak"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1939,6 +1947,7 @@ dependencies = [
  "faster-hex",
  "futures",
  "hashes",
+ "kaspa-utils",
  "rand 0.8.5",
  "serde",
  "thiserror",

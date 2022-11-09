@@ -25,7 +25,5 @@ pub fn run_server(address: SocketAddr, core_service: Arc<RpcApi>) -> JoinHandle<
 
     let svc = RpcServer::new(grpc_service).send_compressed(CompressionEncoding::Gzip).accept_compressed(CompressionEncoding::Gzip);
 
-    tokio::spawn(async move {
-        Server::builder().add_service(svc).serve_with_shutdown(address, shutdown_signal()).await
-    })
+    tokio::spawn(async move { Server::builder().add_service(svc).serve_with_shutdown(address, shutdown_signal()).await })
 }

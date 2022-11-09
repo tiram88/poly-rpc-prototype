@@ -1,5 +1,5 @@
 use super::{
-    channel::{Channel, NotificationChannel},
+    channel::NotificationChannel,
     collector::DynCollector,
     events::{EventArray, EventType, EVENT_TYPE_ARRAY},
     listener::{Listener, ListenerID, ListenerReceiverSide, ListenerSenderSide, SendingChangedUtxo},
@@ -11,6 +11,7 @@ use crate::{Notification, NotificationType, RpcResult};
 use ahash::AHashMap;
 use async_std::channel::{Receiver, Sender};
 use async_trait::async_trait;
+use kaspa_utils::channel::Channel;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc, Mutex,

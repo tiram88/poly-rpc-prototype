@@ -22,6 +22,7 @@ rpc-core = { path = "rpc/core" }
 rpc-grpc = { path = "rpc/grpc" }
 consensus = { path = "consensus" }
 consensus-core = { path = "consensus/core" }
+kaspa-utils = { path = "utils" }
 
 rand = "0.8"
 faster-hex = "0.6"

@@ -6,8 +6,9 @@ use std::sync::{
     Arc, Mutex,
 };
 extern crate derive_more;
-use super::{channel::Channel, listener::ListenerID, message::SubscribeMessage, result::Result};
+use super::{listener::ListenerID, message::SubscribeMessage, result::Result};
 use crate::{NotificationType, RpcResult};
+use kaspa_utils::channel::Channel;
 
 /// A manager of subscriptions to notifications for registered listeners
 #[async_trait]

@@ -7,6 +7,7 @@ include.workspace = true
 license.workspace = true
 
 [dependencies]
+kaspa-utils.workspace = true
 tokio.workspace = true
 consensus-core.workspace = true
 hashes.workspace = true
