@@ -6,10 +6,10 @@ use futures::{
     pin_mut,
     select,
 };
+use kaspa_utils::triggers::DuplexTrigger;
 use rpc_core::{
     api::ops::{RpcApiOps, SubscribeCommand},
     notify::{events::EventType, listener::ListenerID, subscriber::SubscriptionManager},
-    utils::triggers::DuplexTrigger,
     Notification, NotificationSender, NotificationType, RpcResult,
 };
 use std::{

@@ -1334,6 +1334,7 @@ name = "kaspa-utils"
 version = "0.1.0"
 dependencies = [
  "async-std",
+ "triggered",
 ]
 
 [[package]]
@@ -1965,6 +1966,7 @@ dependencies = [
  "faster-hex",
  "futures",
  "h2",
+ "kaspa-utils",
  "prost",
  "rpc-core",
  "thiserror",

@@ -6,7 +6,6 @@ pub mod notify;
 pub mod result;
 pub mod server;
 pub mod stubs;
-pub mod utils;
 
 pub mod prelude {
     pub use super::api::notifications::*;

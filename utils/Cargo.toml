@@ -7,4 +7,5 @@ include.workspace = true
 license.workspace = true
 
 [dependencies]
+triggered.workspace = true
 async-std = { version = "1.12.0", features = ['attributes'] }

@@ -1,11 +1,9 @@
 use crate::{protowire::KaspadResponse, server::StatusResult};
 use futures::pin_mut;
-use rpc_core::{
-    notify::{
-        listener::{ListenerID, ListenerReceiverSide},
-        notifier::Notifier,
-    },
-    utils::triggers::DuplexTrigger,
+use kaspa_utils::triggers::DuplexTrigger;
+use rpc_core::notify::{
+    listener::{ListenerID, ListenerReceiverSide},
+    notifier::Notifier,
 };
 use std::{
     collections::HashMap,

@@ -12,6 +12,7 @@ license.workspace = true
 thiserror.workspace = true
 rpc-core.workspace = true
 tonic.workspace = true
+kaspa-utils.workspace = true
 prost.workspace = true
 faster-hex.workspace = true
 triggered.workspace = true
