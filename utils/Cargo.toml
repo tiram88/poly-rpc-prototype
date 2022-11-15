@@ -1,0 +1,11 @@
+[package]
+name = "kaspa-utils"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+include.workspace = true
+license.workspace = true
+
+[dependencies]
+triggered.workspace = true
+async-std = { version = "1.12.0", features = ['attributes'] }

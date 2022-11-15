@@ -1,6 +1,6 @@
-use std::str::FromStr;
-use rpc_core::{RpcHash, RpcHexData, RpcError, RpcResult};
 use crate::protowire;
+use rpc_core::{RpcError, RpcHash, RpcHexData, RpcResult};
+use std::str::FromStr;
 
 // ----------------------------------------------------------------------------
 // rpc_core to protowire
@@ -10,14 +10,8 @@ impl From<&rpc_core::RpcTransaction> for protowire::RpcTransaction {
     fn from(item: &rpc_core::RpcTransaction) -> Self {
         Self {
             version: item.version,
-            inputs: item.inputs
-                .iter()
-                .map(|x| protowire::RpcTransactionInput::from(x))
-                .collect(),
-            outputs: item.outputs
-                .iter()
-                .map(|x| protowire::RpcTransactionOutput::from(x))
-                .collect(),
+            inputs: item.inputs.iter().map(protowire::RpcTransactionInput::from).collect(),
+            outputs: item.outputs.iter().map(protowire::RpcTransactionOutput::from).collect(),
             lock_time: item.lock_time,
             subnetwork_id: item.subnetwork_id.to_string(),
             gas: item.gas,
@@ -34,7 +28,7 @@ impl From<&rpc_core::RpcTransactionInput> for protowire::RpcTransactionInput {
             signature_script: item.signature_script.to_string(),
             sequence: item.sequence,
             sig_op_count: item.sig_op_count,
-            verbose_data: Some((&item.verbose_data).into()),
+            verbose_data: item.verbose_data.as_ref().map(|x| x.into()),
         }
     }
 }
@@ -51,10 +45,7 @@ impl From<&rpc_core::RpcTransactionOutput> for protowire::RpcTransactionOutput {
 
 impl From<&rpc_core::RpcOutpoint> for protowire::RpcOutpoint {
     fn from(item: &rpc_core::RpcOutpoint) -> Self {
-        Self {
-            transaction_id: item.transaction_id.to_string(),
-            index: item.index,
-        }
+        Self { transaction_id: item.transaction_id.to_string(), index: item.index }
     }
 }
 
@@ -71,10 +62,7 @@ impl From<&rpc_core::RpcUtxoEntry> for protowire::RpcUtxoEntry {
 
 impl From<&rpc_core::RpcScriptPublicKey> for protowire::RpcScriptPublicKey {
     fn from(item: &rpc_core::RpcScriptPublicKey) -> Self {
-        Self {
-            version: item.version.into(),
-            script_public_key: item.script_public_key.to_string(),
-        }
+        Self { version: item.version.into(), script_public_key: item.script_public_key.to_string() }
     }
 }
 
@@ -114,21 +102,24 @@ impl TryFrom<&protowire::RpcTransaction> for rpc_core::RpcTransaction {
     fn try_from(item: &protowire::RpcTransaction) -> RpcResult<Self> {
         Ok(Self {
             version: item.version,
-            inputs: item.inputs
+            inputs: item
+                .inputs
                 .iter()
-                .map(|x| rpc_core::RpcTransactionInput::try_from(x))
+                .map(rpc_core::RpcTransactionInput::try_from)
                 .collect::<RpcResult<Vec<rpc_core::RpcTransactionInput>>>()?,
-            outputs: item.outputs
+            outputs: item
+                .outputs
                 .iter()
-                .map(|x| rpc_core::RpcTransactionOutput::try_from(x))
+                .map(rpc_core::RpcTransactionOutput::try_from)
                 .collect::<RpcResult<Vec<rpc_core::RpcTransactionOutput>>>()?,
             lock_time: item.lock_time,
             subnetwork_id: rpc_core::RpcSubnetworkId::from_str(&item.subnetwork_id)?,
             gas: item.gas,
             payload: RpcHexData::from_str(&item.payload)?,
-            verbose_data: item.verbose_data
+            verbose_data: item
+                .verbose_data
                 .as_ref()
-                .ok_or(RpcError::MissingRpcFieldError("RpcTransaction".to_string(), "verbose_data".to_string()))?
+                .ok_or_else(|| RpcError::MissingRpcFieldError("RpcTransaction".to_string(), "verbose_data".to_string()))?
                 .try_into()?,
         })
     }
@@ -138,17 +129,15 @@ impl TryFrom<&protowire::RpcTransactionInput> for rpc_core::RpcTransactionInput 
     type Error = RpcError;
     fn try_from(item: &protowire::RpcTransactionInput) -> RpcResult<Self> {
         Ok(Self {
-            previous_outpoint: item.previous_outpoint
+            previous_outpoint: item
+                .previous_outpoint
                 .as_ref()
-                .ok_or(RpcError::MissingRpcFieldError("RpcTransactionInput".to_string(), "previous_outpoint".to_string()))?
+                .ok_or_else(|| RpcError::MissingRpcFieldError("RpcTransactionInput".to_string(), "previous_outpoint".to_string()))?
                 .try_into()?,
             signature_script: RpcHexData::from_str(&item.signature_script)?,
-                sequence: item.sequence,
-                sig_op_count: item.sig_op_count,
-            verbose_data: item.verbose_data
-                .as_ref()
-                .ok_or(RpcError::MissingRpcFieldError("RpcTransactionInput".to_string(), "verbose_data".to_string()))?
-                .try_into()?,
+            sequence: item.sequence,
+            sig_op_count: item.sig_op_count,
+            verbose_data: item.verbose_data.as_ref().map(rpc_core::RpcTransactionInputVerboseData::try_from).transpose()?,
         })
     }
 }
@@ -158,13 +147,15 @@ impl TryFrom<&protowire::RpcTransactionOutput> for rpc_core::RpcTransactionOutpu
     fn try_from(item: &protowire::RpcTransactionOutput) -> RpcResult<Self> {
         Ok(Self {
             amount: item.amount,
-            script_public_key: item.script_public_key
+            script_public_key: item
+                .script_public_key
                 .as_ref()
-                .ok_or(RpcError::MissingRpcFieldError("RpcTransactionOutput".to_string(), "script_public_key".to_string()))?
+                .ok_or_else(|| RpcError::MissingRpcFieldError("RpcTransactionOutput".to_string(), "script_public_key".to_string()))?
                 .try_into()?,
-            verbose_data: item.verbose_data
+            verbose_data: item
+                .verbose_data
                 .as_ref()
-                .ok_or(RpcError::MissingRpcFieldError("RpcTransactionOutput".to_string(), "verbose_data".to_string()))?
+                .ok_or_else(|| RpcError::MissingRpcFieldError("RpcTransactionOutput".to_string(), "verbose_data".to_string()))?
                 .try_into()?,
         })
     }
@@ -173,10 +164,7 @@ impl TryFrom<&protowire::RpcTransactionOutput> for rpc_core::RpcTransactionOutpu
 impl TryFrom<&protowire::RpcOutpoint> for rpc_core::RpcOutpoint {
     type Error = RpcError;
     fn try_from(item: &protowire::RpcOutpoint) -> RpcResult<Self> {
-        Ok(Self {
-            transaction_id: RpcHash::from_str(&item.transaction_id)?,
-            index: item.index,
-        })
+        Ok(Self { transaction_id: RpcHash::from_str(&item.transaction_id)?, index: item.index })
     }
 }
 
@@ -185,9 +173,10 @@ impl TryFrom<&protowire::RpcUtxoEntry> for rpc_core::RpcUtxoEntry {
     fn try_from(item: &protowire::RpcUtxoEntry) -> RpcResult<Self> {
         Ok(Self {
             amount: item.amount,
-            script_public_key: item.script_public_key
+            script_public_key: item
+                .script_public_key
                 .as_ref()
-                .ok_or(RpcError::MissingRpcFieldError("RpcTransactionOutput".to_string(), "script_public_key".to_string()))?
+                .ok_or_else(|| RpcError::MissingRpcFieldError("RpcTransactionOutput".to_string(), "script_public_key".to_string()))?
                 .try_into()?,
             block_daa_score: item.block_daa_score,
             is_coinbase: item.is_coinbase,
@@ -198,10 +187,7 @@ impl TryFrom<&protowire::RpcUtxoEntry> for rpc_core::RpcUtxoEntry {
 impl TryFrom<&protowire::RpcScriptPublicKey> for rpc_core::RpcScriptPublicKey {
     type Error = RpcError;
     fn try_from(item: &protowire::RpcScriptPublicKey) -> RpcResult<Self> {
-        Ok(Self {
-            version: u16::try_from(item.version)?,
-            script_public_key: item.script_public_key.as_str().try_into()?,
-        })
+        Ok(Self { version: u16::try_from(item.version)?, script_public_key: item.script_public_key.as_str().try_into()? })
     }
 }
 
@@ -229,7 +215,7 @@ impl TryFrom<&protowire::RpcTransactionOutputVerboseData> for rpc_core::RpcTrans
     type Error = RpcError;
     fn try_from(item: &protowire::RpcTransactionOutputVerboseData) -> RpcResult<Self> {
         Ok(Self {
-            script_public_key_type: item.script_public_key_type.parse()?,
+            script_public_key_type: item.script_public_key_type.as_str().try_into()?,
             script_public_key_address: item.script_public_key_address.clone(),
         })
     }

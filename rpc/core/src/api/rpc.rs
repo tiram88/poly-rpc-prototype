@@ -1,17 +1,18 @@
 //! The client API
 //!
-//! Client = External RPC Service
+//! Rpc = External RPC Service
 //! All data provided by the RCP server can be trusted by the client
-//! NO data submitted by the client to the server can be trusted
+//! No data submitted by the client to the server can be trusted
 
+use crate::notify::channel::NotificationChannel;
+use crate::notify::listener::{ListenerID, ListenerReceiverSide};
+use crate::{model::*, NotificationType};
 use async_trait::async_trait;
-use crate::model::*;
 // use crate::notifications::*;
 use crate::result::*;
 
 #[async_trait]
-pub trait RpcApi : Sync + Send {
-
+pub trait RpcApi: Sync + Send {
     // async fn ping(
     //     &self,
     //     msg : String
@@ -66,10 +67,7 @@ pub trait RpcApi : Sync + Send {
     //     allow_orphan: bool,
     // ) -> RpcResult<SubmitTransactionResponse>;
 
-    async fn get_block(
-        &self,
-        req: GetBlockRequest
-    ) -> RpcResult<GetBlockResponse>;
+    async fn get_block(&self, req: GetBlockRequest) -> RpcResult<GetBlockResponse>;
 
     // async fn get_subnetwork(
     //     &self,
@@ -139,10 +137,7 @@ pub trait RpcApi : Sync + Send {
     //     req: UnbanRequest
     // ) -> RpcResult<UnbanResponse>;
 
-    async fn get_info(
-        &self,
-        req: GetInfoRequest
-    ) -> RpcResult<GetInfoResponse>;
+    async fn get_info(&self, req: GetInfoRequest) -> RpcResult<GetInfoResponse>;
 
     // async fn estimate_network_hashes_per_second(
     //     &self,
@@ -159,34 +154,46 @@ pub trait RpcApi : Sync + Send {
     // ) -> RpcResult<GetCoinSupplyResponse>;
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // Notification API
 
-    // TODO implement channel notification interface
+    /// Register a new listenera and return an id and channel receiver.
+    fn register_new_listener(&self, channel: Option<NotificationChannel>) -> ListenerReceiverSide;
+
+    /// Unregister an existing listener.
+    ///
+    /// Stop all notifications for this listener and drop its channel.
+    async fn unregister_listener(&self, id: ListenerID) -> RpcResult<()>;
+
+    /// Start sending notifications of some type to a listener.
+    async fn start_notify(&self, id: ListenerID, notification_type: NotificationType) -> RpcResult<()>;
+
+    /// Stop sending notifications of some type to a listener.
+    async fn stop_notify(&self, id: ListenerID, notification_type: NotificationType) -> RpcResult<()>;
 
     // /// # start_notify()
-    // /// 
+    // ///
     // /// Register a channel for event notification
-    // /// 
+    // ///
     // /// NotificationHandle can supply and existing u64
     // /// identifier for a channel or a new channel
     // /// for which a new u64 handle id will be returned
-    // /// 
+    // ///
     // async fn start_notify(
     //     &self,
     //     _notification_handle : NotificationHandle,
     //     _notification_type: NotificationType,
     // ) -> RpcResult<Option<u64>>;
-    
+
     // /// # stop_notify()
-    // /// 
+    // ///
     // /// Unregister an event notification
-    // /// 
-    // /// If notification_type is None, stop all 
+    // ///
+    // /// If notification_type is None, stop all
     // /// notifications and drop the channel
-    // /// 
+    // ///
     // async fn stop_notify(
     //     &self,
     //     _notification_type: Option<NotificationType>,
     //     _id : u64
     // ) -> RpcResult<()>;
-
 }

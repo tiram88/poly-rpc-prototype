@@ -1,10 +1,10 @@
-use serde::{Deserialize, Serialize};
-use borsh::{BorshSerialize, BorshDeserialize, BorshSchema};
 use crate::{prelude::RpcHash, RpcBlueWorkType};
+use borsh::{BorshDeserialize, BorshSchema, BorshSerialize};
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct RpcBlockHeader  {
+pub struct RpcBlockHeader {
     pub version: u32,
     pub parents: Vec<RpcBlockLevelParents>,
     pub hash_merkle_root: RpcHash,
@@ -19,8 +19,8 @@ pub struct RpcBlockHeader  {
     pub blue_score: u64,
 }
 
-#[derive(Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct RpcBlockLevelParents  {
+pub struct RpcBlockLevelParents {
     pub parent_hashes: Vec<RpcHash>,
 }

@@ -1,17 +1,16 @@
 extern crate derive_more;
 
+use borsh::{BorshDeserialize, BorshSchema, BorshSerialize};
+use consensus_core::BlueWorkType;
+use serde::{Deserialize, Serialize};
+use std::convert::TryFrom;
 use std::fmt::{Debug, Display, Formatter};
 use std::str::{self, FromStr};
-use std::convert::TryFrom;
-use borsh::{BorshSerialize, BorshDeserialize, BorshSchema};
-use serde::{Serialize, Deserialize};
-use consensus_core::BlueWorkType;
 
-use crate::errors;
-
+use crate::RpcError;
 
 #[repr(transparent)]
-#[derive(Debug, PartialEq, Copy, Clone, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
 #[serde(rename_all = "camelCase", try_from = "String", into = "String")]
 pub struct RpcBlueWorkType(BlueWorkType);
 
@@ -40,27 +39,26 @@ impl From<RpcBlueWorkType> for String {
 }
 
 impl FromStr for RpcBlueWorkType {
-    type Err = errors::RpcError;
+    type Err = RpcError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(RpcBlueWorkType(u128::from_str_radix(s, 16)?))
+        Ok(RpcBlueWorkType(u128::from_str_radix(s, 16).map_err(RpcError::RpcBlueWorkTypeParseError)?))
     }
 }
 
 impl TryFrom<&str> for RpcBlueWorkType {
-    type Error = errors::RpcError;
+    type Error = RpcError;
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         value.parse()
     }
 }
 
 impl TryFrom<String> for RpcBlueWorkType {
-    type Error = errors::RpcError;
+    type Error = RpcError;
     fn try_from(value: String) -> Result<Self, Self::Error> {
         value.parse()
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -91,5 +89,10 @@ mod tests {
 
         let rbw2 = rbw;
         assert_eq!(rbw, rbw2);
+    }
+
+    #[test]
+    fn test_rpc_blue_work_from_str() {
+        assert!(RpcBlueWorkType::from_str("40a593f53f695ba413").is_ok());
     }
 }

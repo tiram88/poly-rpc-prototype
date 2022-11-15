@@ -1,12 +1,7 @@
 use std::sync::Arc;
 
-use crate::{
-    RpcError, RpcResult,
-    RpcBlock, RpcBlockVerboseData,
-};
-use consensus_core::{
-    block::Block,
-};
+use crate::{RpcBlock, RpcBlockVerboseData, RpcError, RpcResult};
+use consensus_core::block::Block;
 
 // ----------------------------------------------------------------------------
 // consensus_core to rpc_core
@@ -14,11 +9,7 @@ use consensus_core::{
 
 impl From<&Block> for RpcBlock {
     fn from(item: &Block) -> Self {
-        Self {
-            header: (&item.header).into(),
-            transactions: vec![],
-            verbose_data: item.into(),
-        }
+        Self { header: (&item.header).into(), transactions: vec![], verbose_data: item.into() }
     }
 }
 
@@ -32,7 +23,7 @@ impl From<&Block> for RpcBlockVerboseData {
             selected_parent_hash: 0.into(),
             transaction_ids: vec![],
             is_header_only: true,
-            blue_score: 0u64.into(),
+            blue_score: 0u64,
             children_hashes: vec![],
             merge_set_blues_hashes: vec![],
             merge_set_reds_hashes: vec![],
@@ -50,7 +41,7 @@ impl TryFrom<&RpcBlock> for Block {
     fn try_from(item: &RpcBlock) -> RpcResult<Self> {
         Ok(Self {
             header: (&item.header).try_into()?,
-            transactions: Arc::new(vec![]),  // FIXME
+            transactions: Arc::new(vec![]), // FIXME
         })
     }
 }

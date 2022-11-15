@@ -1,46 +1,56 @@
-use rpc_core::api::ops::ClientApiOps;
-use crate::protowire::{
-    kaspad_request, kaspad_response,
-    KaspadResponse, KaspadRequest
-};
+use crate::protowire::{kaspad_request, kaspad_response, KaspadRequest, KaspadResponse};
+use rpc_core::api::ops::RpcApiOps;
 
-impl From<&kaspad_request::Payload> for ClientApiOps {
+impl From<&kaspad_request::Payload> for RpcApiOps {
     fn from(item: &kaspad_request::Payload) -> Self {
         match item {
-            kaspad_request::Payload::GetCurrentNetworkRequest(_) => ClientApiOps::GetCurrentNetwork,
-            kaspad_request::Payload::NotifyBlockAddedRequest(_) => ClientApiOps::Notify,
-            kaspad_request::Payload::GetBlockRequest(_) => ClientApiOps::GetBlock,
-            kaspad_request::Payload::GetInfoRequest(_) => ClientApiOps::GetInfo,
+            kaspad_request::Payload::GetCurrentNetworkRequest(_) => RpcApiOps::GetCurrentNetwork,
+            kaspad_request::Payload::GetBlockRequest(_) => RpcApiOps::GetBlock,
+            kaspad_request::Payload::GetInfoRequest(_) => RpcApiOps::GetInfo,
+
+            // Subscription commands for starting/stopping notifications
+            kaspad_request::Payload::NotifyBlockAddedRequest(_) => RpcApiOps::NotifyBlockAdded,
         }
     }
 }
 
-impl From<&kaspad_response::Payload> for ClientApiOps {
+impl From<&kaspad_response::Payload> for RpcApiOps {
     fn from(item: &kaspad_response::Payload) -> Self {
         match item {
-            kaspad_response::Payload::GetCurrentNetworkResponse(_) => ClientApiOps::GetCurrentNetwork,
-            kaspad_response::Payload::NotifyBlockAddedResponse(_) => ClientApiOps::Notify,
-            kaspad_response::Payload::GetBlockResponse(_) => ClientApiOps::GetBlock,
-            kaspad_response::Payload::GetInfoResponse(_) => ClientApiOps::GetInfo,
+            kaspad_response::Payload::GetCurrentNetworkResponse(_) => RpcApiOps::GetCurrentNetwork,
+            kaspad_response::Payload::GetBlockResponse(_) => RpcApiOps::GetBlock,
+            kaspad_response::Payload::GetInfoResponse(_) => RpcApiOps::GetInfo,
+
+            // Subscription commands for starting/stopping notifications
+            kaspad_response::Payload::NotifyBlockAddedResponse(_) => RpcApiOps::NotifyBlockAdded,
+
+            // Notifications
+            kaspad_response::Payload::BlockAddedNotification(_) => RpcApiOps::Notification,
         }
+    }
+}
+
+impl From<kaspad_request::Payload> for KaspadRequest {
+    fn from(item: kaspad_request::Payload) -> Self {
+        KaspadRequest { payload: Some(item) }
     }
 }
 
 impl AsRef<KaspadRequest> for KaspadRequest {
     fn as_ref(&self) -> &Self {
-        &self
+        self
     }
 }
 
 impl AsRef<KaspadResponse> for KaspadResponse {
     fn as_ref(&self) -> &Self {
-        &self
+        self
     }
 }
 
 pub mod kaspad_request_convert {
-    use rpc_core::{RpcError, RpcResult,};
     use crate::protowire::*;
+    use rpc_core::{RpcError, RpcResult};
 
     impl_into_kaspad_request!(rpc_core::GetBlockRequest, GetBlockRequestMessage, GetBlockRequest);
     impl_into_kaspad_request!(rpc_core::NotifyBlockAddedRequest, NotifyBlockAddedRequestMessage, NotifyBlockAddedRequest);
@@ -95,7 +105,7 @@ pub mod kaspad_request_convert {
                     }
                 }
             }
-            
+
             impl TryFrom<&KaspadRequest> for $($core_struct)::+ {
                 type Error = RpcError;
                 fn try_from(item: &KaspadRequest) -> RpcResult<Self> {
@@ -105,7 +115,7 @@ pub mod kaspad_request_convert {
                         .try_into()
                 }
             }
-            
+
             impl From<$($protowire_struct)::+> for KaspadRequest {
                 fn from(item: $($protowire_struct)::+) -> Self {
                     Self { payload: Some(kaspad_request::Payload::$($variant)::+(item)) }
@@ -124,12 +134,14 @@ pub mod kaspad_request_convert {
 }
 
 pub mod kaspad_response_convert {
-    use rpc_core::{RpcError, RpcResult};
     use crate::protowire::*;
+    use rpc_core::{RpcError, RpcResult};
 
     impl_into_kaspad_response!(rpc_core::GetBlockResponse, GetBlockResponseMessage, GetBlockResponse);
-    impl_into_kaspad_response!(rpc_core::NotifyBlockAddedResponse, NotifyBlockAddedResponseMessage, NotifyBlockAddedResponse);
     impl_into_kaspad_response!(rpc_core::GetInfoResponse, GetInfoResponseMessage, GetInfoResponse);
+
+    impl_into_kaspad_response!(rpc_core::NotifyBlockAddedResponse, NotifyBlockAddedResponseMessage, NotifyBlockAddedResponse);
+    impl_into_kaspad_notify_response!(rpc_core::NotifyBlockAddedResponse, NotifyBlockAddedResponseMessage, NotifyBlockAddedResponse);
 
     macro_rules! impl_into_kaspad_response {
         ($($core_struct:ident)::+, $($protowire_struct:ident)::+, $($variant:ident)::+) => {
@@ -138,32 +150,53 @@ pub mod kaspad_response_convert {
             // rpc_core to protowire
             // ----------------------------------------------------------------------------
 
-            impl From<&RpcResult<$($core_struct)::+>> for kaspad_response::Payload {
-                fn from(item: &RpcResult<$($core_struct)::+>) -> Self {
+            impl From<RpcResult<&$($core_struct)::+>> for kaspad_response::Payload {
+                fn from(item: RpcResult<&$($core_struct)::+>) -> Self {
                     kaspad_response::Payload::$($variant)::+(item.into())
                 }
             }
-            
-            impl From<&RpcResult<$($core_struct)::+>> for KaspadResponse {
-                fn from(item: &RpcResult<$($core_struct)::+>) -> Self {
+
+            impl From<RpcResult<&$($core_struct)::+>> for KaspadResponse {
+                fn from(item: RpcResult<&$($core_struct)::+>) -> Self {
                     Self {
                         payload: Some(item.into())
                     }
                 }
             }
 
-            impl From<RpcError> for $($protowire_struct)::+ {
-                fn from(item: RpcError) -> Self {
-                    (&Err(item)).into()
+            impl From<RpcResult<$($core_struct)::+>> for kaspad_response::Payload {
+                fn from(item: RpcResult<$($core_struct)::+>) -> Self {
+                    kaspad_response::Payload::$($variant)::+(item.into())
                 }
             }
-            
+
+            impl From<RpcResult<$($core_struct)::+>> for KaspadResponse {
+                fn from(item: RpcResult<$($core_struct)::+>) -> Self {
+                    Self {
+                        payload: Some(item.into())
+                    }
+                }
+            }
+
+            impl From<RpcResult<$($core_struct)::+>> for $($protowire_struct)::+ {
+                fn from(item: RpcResult<$($core_struct)::+>) -> Self {
+                    item.as_ref().map_err(|x| (*x).clone()).into()
+                }
+            }
+
+            impl From<RpcError> for $($protowire_struct)::+ {
+                fn from(item: RpcError) -> Self {
+                    let x: RpcResult<&$($core_struct)::+> = Err(item);
+                    x.into()
+                }
+            }
+
             impl From<$($protowire_struct)::+> for kaspad_response::Payload {
                 fn from(item: $($protowire_struct)::+) -> Self {
                     kaspad_response::Payload::$($variant)::+(item)
                 }
             }
-            
+
             impl From<$($protowire_struct)::+> for KaspadResponse {
                 fn from(item: $($protowire_struct)::+) -> Self {
                     Self {
@@ -171,7 +204,7 @@ pub mod kaspad_response_convert {
                     }
                 }
             }
-                        
+
             // ----------------------------------------------------------------------------
             // protowire to rpc_core
             // ----------------------------------------------------------------------------
@@ -186,7 +219,7 @@ pub mod kaspad_response_convert {
                     }
                 }
             }
-            
+
             impl TryFrom<&KaspadResponse> for $($core_struct)::+ {
                 type Error = RpcError;
                 fn try_from(item: &KaspadResponse) -> RpcResult<Self> {
@@ -196,8 +229,30 @@ pub mod kaspad_response_convert {
                         .try_into()
                 }
             }
-            
+
         };
     }
     use impl_into_kaspad_response;
+
+    macro_rules! impl_into_kaspad_notify_response {
+        ($($core_struct:ident)::+, $($protowire_struct:ident)::+, $($variant:ident)::+) => {
+
+            // ----------------------------------------------------------------------------
+            // rpc_core to protowire
+            // ----------------------------------------------------------------------------
+
+            impl<T> From<Result<(), T>> for $($protowire_struct)::+
+            where
+                T: Into<RpcError>,
+            {
+                fn from(item: Result<(), T>) -> Self {
+                    item
+                        .map(|_| $($core_struct)::+{})
+                        .map_err(|err| err.into()).into()
+                }
+            }
+
+        };
+    }
+    use impl_into_kaspad_notify_response;
 }

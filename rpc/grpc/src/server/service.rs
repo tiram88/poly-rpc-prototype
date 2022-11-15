@@ -1,116 +1,128 @@
-use std::{
-    net::SocketAddr, pin::Pin, sync::Arc, collections::HashMap, io::ErrorKind,
+use super::connection::{GrpcConnectionManager, GrpcSender};
+use crate::protowire::{
+    kaspad_request::Payload, rpc_server::Rpc, GetBlockResponseMessage, GetInfoResponseMessage, KaspadRequest, KaspadResponse,
+    NotifyBlockAddedResponseMessage,
 };
+use crate::server::StatusResult;
 use futures::Stream;
-use tokio::sync::{mpsc, RwLock};
-use tonic::{
-    Request, Response,
-};
+use rpc_core::notify::channel::NotificationChannel;
+use rpc_core::notify::listener::{ListenerID, ListenerReceiverSide, SendingChangedUtxo};
+use rpc_core::notify::subscriber::DynSubscriptionManager;
+use rpc_core::notify::subscriber::Subscriber;
+use rpc_core::RpcResult;
 use rpc_core::{
     api::rpc::RpcApi as RpcApiT,
+    notify::{collector::RpcCoreCollector, events::EVENT_TYPE_ARRAY, notifier::Notifier},
     server::service::RpcApi,
-    RpcResult,
 };
-use crate::protowire::{
-    rpc_server::Rpc,
-    KaspadRequest, KaspadResponse,
-    kaspad_request::Payload,
-    GetBlockResponseMessage, NotifyBlockAddedResponseMessage, GetInfoResponseMessage, 
-};
+use std::{io::ErrorKind, net::SocketAddr, pin::Pin, sync::Arc};
+use tokio::sync::{mpsc, RwLock};
+use tonic::{Request, Response};
 
-pub type StatusResult<T> = Result<T, tonic::Status>;
-
-pub type GrpcSender = mpsc::Sender<StatusResult<KaspadResponse>>;
-
-pub struct GrpcConnection {
-    address: SocketAddr,
-    sender: GrpcSender,
-}
-
-impl GrpcConnection {
-    pub fn new(address: SocketAddr, sender: GrpcSender) -> Self {
-        Self { address, sender }
-    }
-    pub async fn send(&self, message: StatusResult<KaspadResponse>) {
-        match self.sender.send(message).await {
-            Ok(_) => {}
-            Err(err) => {
-                println!("[send] SendError: to {}, {:?}", self.address, err);
-                // TODO: drop this connection
-            }
-        }
-    }
-}
-
-pub struct GrpcConnectionManager {
-    connections: HashMap<SocketAddr, GrpcConnection>,
-}
-
-impl GrpcConnectionManager {
-    pub fn new() -> Self {
-        Self { connections: HashMap::new(), }
-    }
-
-    pub async fn register(&mut self, address: SocketAddr, sender: GrpcSender) {
-        println!("register a new gRPC connection from: {}", address);
-        let connection = GrpcConnection::new(address, sender);
-        match self.connections.insert(address.clone(), connection) {
-            Some(_prev) => {
-                //prev.sender.closed().await
-            },
-            None => {}
-        }
-    }
-    pub async fn dismiss(& mut self, address: SocketAddr) {
-        println!("dismiss a gRPC connection from: {}", address);
-        if let Some(_connection) = self.connections.remove(&address) {
-            //connection.sender.closed().await;
-        }
-    }
-}
-
+/// A protowire RPC service.
+///
+/// Relay requests to a central core service that queries the consensus.
+///
+/// Registers into a central core service in order to receive consensus notifications and
+/// send those forward to the registered clients.
+///
+///
+/// ### Implementation notes
+///
+/// The service is a listener of the provided core service. The registration happens in the constructor,
+/// giving it the lifetime of the overall service.
+///
+/// As a corollary, the unregistration should occur just before the object is dropped by calling finalize.
+///
+/// #### Lifetime and usage
+///
+/// - new -> Self
+///     - start
+///         - register_connection
+///         - unregister_connection
+///     - stop
+/// - finalize
+///
+/// _Object is ready for being dropped. Any further usage of it is undefined behaviour._
+///
+/// #### Further development
+///
+/// TODO: implement a queue of requests and a pool of workers preparing and sending back the reponses.
 pub struct RpcService {
-    pub core_service: Arc<RpcApi>,
+    core_service: Arc<RpcApi>,
+    core_channel: NotificationChannel,
+    core_listener: Arc<ListenerReceiverSide>,
     connection_manager: Arc<RwLock<GrpcConnectionManager>>,
+    notifier: Arc<Notifier>,
 }
 
 impl RpcService {
-    pub fn new(core_service: Arc<RpcApi>, connection_manager: Arc<RwLock<GrpcConnectionManager>>) -> Self {
-        Self {
-            core_service,
-            connection_manager,
+    pub fn new(core_service: Arc<RpcApi>) -> Self {
+        // Prepare core objects
+        let core_channel = NotificationChannel::default();
+        let core_listener = Arc::new(core_service.register_new_listener(Some(core_channel.clone())));
+
+        // Prepare internals
+        let collector = Arc::new(RpcCoreCollector::new(core_channel.receiver()));
+        let subscription_manager: DynSubscriptionManager = core_service.notifier();
+        let subscriber = Subscriber::new(subscription_manager, core_listener.id);
+        let notifier = Arc::new(Notifier::new(Some(collector), Some(subscriber), SendingChangedUtxo::FilteredByAddress));
+        let connection_manager = Arc::new(RwLock::new(GrpcConnectionManager::new(notifier.clone())));
+
+        Self { core_service, core_channel, core_listener, connection_manager, notifier }
+    }
+
+    pub fn start(&self) {
+        // Start the internal notifier
+        self.notifier.clone().start();
+    }
+
+    pub async fn register_connection(&self, address: SocketAddr, sender: GrpcSender) -> ListenerID {
+        self.connection_manager.write().await.register(address, sender).await
+    }
+
+    pub async fn unregister_connection(&self, address: SocketAddr) {
+        self.connection_manager.write().await.unregister(address).await;
+    }
+
+    pub async fn stop(&self) -> RpcResult<()> {
+        // Unsubscribe from all notification types
+        let listener_id = self.core_listener.id;
+        for event in EVENT_TYPE_ARRAY.into_iter() {
+            self.core_service.stop_notify(listener_id, event.into()).await?;
         }
+
+        // Stop the internal notifier
+        self.notifier.clone().stop().await?;
+
+        Ok(())
     }
 
-    pub async fn register_connection(&self, address: SocketAddr, sender: GrpcSender) {
-        self.connection_manager.write().await.register(address, sender).await;
-    }
-
-    pub async fn dismiss_connection(&self, address: SocketAddr) {
-        self.connection_manager.write().await.dismiss(address).await;
+    pub async fn finalize(&self) -> RpcResult<()> {
+        self.core_service.unregister_listener(self.core_listener.id).await?;
+        self.core_channel.receiver().close();
+        Ok(())
     }
 }
 
 #[tonic::async_trait]
 impl Rpc for RpcService {
-
-    type MessageStreamStream = Pin<
-        Box<dyn Stream<Item = Result<KaspadResponse, tonic::Status>> + Send + Sync + 'static>
-    >;
+    type MessageStreamStream = Pin<Box<dyn Stream<Item = Result<KaspadResponse, tonic::Status>> + Send + Sync + 'static>>;
 
     async fn message_stream(
         &self,
         request: Request<tonic::Streaming<KaspadRequest>>,
     ) -> Result<Response<Self::MessageStreamStream>, tonic::Status> {
-        let remote_addr = request.remote_addr()
-            .ok_or(tonic::Status::new(tonic::Code::InvalidArgument, "Incoming connection opening request has no remote address".to_string()))?;
+        let remote_addr = request.remote_addr().ok_or_else(|| {
+            tonic::Status::new(tonic::Code::InvalidArgument, "Incoming connection opening request has no remote address".to_string())
+        })?;
 
         println!("MessageStream from {:?}", remote_addr);
 
         // External sender and reciever
         let (send_channel, mut recv_channel) = mpsc::channel::<StatusResult<KaspadResponse>>(128);
-        self.register_connection(remote_addr, send_channel.clone()).await;
-        
+        let listener_id = self.register_connection(remote_addr, send_channel.clone()).await;
+
         // Internal related sender and reciever
         let (stream_tx, stream_rx) = mpsc::channel::<StatusResult<KaspadResponse>>(10);
 
@@ -123,15 +135,16 @@ impl Rpc for RpcService {
                     Err(_) => {
                         // If sending failed, then remove the connection from connection manager
                         println!("[Remote] stream tx sending error. Remote {:?}", &remote_addr);
-                        connection_manager.write().await.dismiss(remote_addr).await;
+                        connection_manager.write().await.unregister(remote_addr).await;
                     }
                 }
             }
         });
 
         // Request handler
-        let connection_manager = self.connection_manager.clone();
         let core_service = self.core_service.clone();
+        let connection_manager = self.connection_manager.clone();
+        let notifier = self.notifier.clone();
         let mut stream: tonic::Streaming<KaspadRequest> = request.into_inner();
         tokio::spawn(async move {
             loop {
@@ -139,37 +152,31 @@ impl Rpc for RpcService {
                     Ok(Some(request)) => {
                         println!("Request is {:?}", request);
                         let response: KaspadResponse = match request.payload {
-        
-                            Some(Payload::NotifyBlockAddedRequest(_notify_block_added_request_message)) => {
-                                NotifyBlockAddedResponseMessage::from(rpc_core::RpcError::NotImplemented).into()
+                            Some(Payload::GetBlockRequest(ref request)) => match request.try_into() {
+                                Ok(request) => core_service.get_block(request).await.into(),
+                                Err(err) => GetBlockResponseMessage::from(err).into(),
                             },
-            
-                            Some(Payload::GetBlockRequest(request)) => {
-                                let core_request: RpcResult<rpc_core::GetBlockRequest> = (&request).try_into();
-                                match core_request {
-                                    Ok(request) => {
-                                        (&(core_service.get_block(request).await)).into()
-                                    }
-                                    Err(err) => {
-                                        GetBlockResponseMessage::from(err).into()
-                                    }
-                                }
+
+                            Some(Payload::GetInfoRequest(ref request)) => match request.try_into() {
+                                Ok(request) => core_service.get_info(request).await.into(),
+                                Err(err) => GetInfoResponseMessage::from(err).into(),
                             },
-                            
-                            Some(Payload::GetInfoRequest(request)) => {
-                                let core_request: RpcResult<rpc_core::GetInfoRequest> = (&request).try_into();
-                                match core_request {
-                                    Ok(request) => {
-                                        (&(core_service.get_info(request).await)).into()
-                                    }
-                                    Err(err) => {
-                                        GetInfoResponseMessage::from(err).into()
-                                    }
-                                }
-                            },
-                            
-                            _ => GetBlockResponseMessage::from(rpc_core::RpcError::String("Server-side API Not implemented".to_string())).into()
-            
+
+                            Some(Payload::NotifyBlockAddedRequest(ref request)) => NotifyBlockAddedResponseMessage::from({
+                                let request = rpc_core::NotifyBlockAddedRequest::try_from(request).unwrap();
+                                notifier.clone().execute_notify_command(
+                                    listener_id,
+                                    rpc_core::NotificationType::BlockAdded,
+                                    request.command,
+                                )
+                            })
+                            .into(),
+
+                            // TODO: This must be replaced by actual handling of all request variants
+                            _ => GetBlockResponseMessage::from(rpc_core::RpcError::String(
+                                "Server-side API Not implemented".to_string(),
+                            ))
+                            .into(),
                         };
 
                         match send_channel.send(Ok(response)).await {
@@ -178,12 +185,12 @@ impl Rpc for RpcService {
                                 println!("tx send error: {:?}", err);
                             }
                         }
-                   },
+                    }
                     Ok(None) => {
-                        //println!("request error: {:?}", request.err());
-                        println!("Request handler stream {0} got Ok(None). Connection terminated by the client.", remote_addr);
+                        println!("Request handler stream {0} got Ok(None). Connection terminated by the server", remote_addr);
                         break;
-                    },
+                    }
+
                     Err(err) => {
                         if let Some(io_err) = match_for_io_error(&err) {
                             if io_err.kind() == ErrorKind::BrokenPipe {
@@ -202,15 +209,12 @@ impl Rpc for RpcService {
                 }
             }
             println!("Request handler {0} terminated", remote_addr);
-            connection_manager.write().await.dismiss(remote_addr).await;
+            connection_manager.write().await.unregister(remote_addr).await;
         });
-        
+
         // Return connection stream
 
-        Ok(Response::new(Box::pin(
-            tokio_stream::wrappers::ReceiverStream::new(stream_rx),
-        )))
-
+        Ok(Response::new(Box::pin(tokio_stream::wrappers::ReceiverStream::new(stream_rx))))
     }
 }
 

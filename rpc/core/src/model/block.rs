@@ -1,19 +1,17 @@
+use borsh::{BorshDeserialize, BorshSchema, BorshSerialize};
 use serde::{Deserialize, Serialize};
-use borsh::{BorshSerialize, BorshDeserialize, BorshSchema};
 
-use crate::prelude::{
-    RpcBlockHeader, RpcTransaction, RpcHash
-};
+use crate::prelude::{RpcBlockHeader, RpcHash, RpcTransaction};
 
-#[derive(Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct RpcBlock  {
+pub struct RpcBlock {
     pub header: RpcBlockHeader,
     pub transactions: Vec<RpcTransaction>,
     pub verbose_data: RpcBlockVerboseData,
 }
 
-#[derive(Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct RpcBlockVerboseData {
     pub hash: RpcHash,
@@ -25,5 +23,5 @@ pub struct RpcBlockVerboseData {
     pub children_hashes: Vec<RpcHash>,
     pub merge_set_blues_hashes: Vec<RpcHash>,
     pub merge_set_reds_hashes: Vec<RpcHash>,
-    pub is_chain_block: bool
+    pub is_chain_block: bool,
 }

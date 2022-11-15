@@ -1,7 +1,6 @@
-use std::{str::FromStr};
 use hashes::Hash;
 use rpc_grpc::protowire;
-use rpc_core;
+use std::str::FromStr;
 
 fn main() {
     test_hashes();
@@ -30,7 +29,7 @@ fn test_hashes() {
 }
 
 fn test_from() {
-    let sa = ShapeA{ id: 1 };
+    let sa = ShapeA { id: 1 };
     let sb = ShapeB::from(&sa);
     println!("A: {:?}, B: {:?}", sa, sb);
 
@@ -57,9 +56,7 @@ fn test_blue_score() {
 }
 
 fn test_rpc_block_level_parents() {
-    let a_core = rpc_core::RpcBlockLevelParents {
-        parent_hashes: vec![Hash::from(1), Hash::from(123456789)],
-    };
+    let a_core = rpc_core::RpcBlockLevelParents { parent_hashes: vec![Hash::from(1), Hash::from(123456789)] };
     let a_grpc: protowire::RpcBlockLevelParents = (&a_core).try_into().unwrap();
     println!("A core RpcBlockLevelParents {:?}", a_core);
     println!("A gRPC RpcBlockLevelParents {:?}", a_grpc);
@@ -84,16 +81,12 @@ struct ShapeB {
 
 impl From<&ShapeA> for ShapeB {
     fn from(item: &ShapeA) -> ShapeB {
-        ShapeB {
-            id: item.id.to_string(),
-        }
+        ShapeB { id: item.id.to_string() }
     }
 }
 
 impl From<&ShapeB> for ShapeA {
     fn from(item: &ShapeB) -> ShapeA {
-        ShapeA {
-            id: item.id.parse().unwrap_or(0),
-        }
+        ShapeA { id: item.id.parse().unwrap_or(0) }
     }
 }
