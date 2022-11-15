@@ -7,7 +7,7 @@ use std::sync::{
 };
 extern crate derive_more;
 use super::{listener::ListenerID, message::SubscribeMessage, result::Result};
-use crate::{NotificationType, RpcResult};
+use crate::{api::ops::SubscribeCommand, NotificationType, RpcResult};
 use kaspa_utils::channel::Channel;
 
 /// A manager of subscriptions to notifications for registered listeners
@@ -15,6 +15,18 @@ use kaspa_utils::channel::Channel;
 pub trait SubscriptionManager: Send + Sync + Debug {
     async fn start_notify(self: Arc<Self>, id: ListenerID, notification_type: NotificationType) -> RpcResult<()>;
     async fn stop_notify(self: Arc<Self>, id: ListenerID, notification_type: NotificationType) -> RpcResult<()>;
+
+    async fn execute_notify_command(
+        self: Arc<Self>,
+        id: ListenerID,
+        notification_type: NotificationType,
+        command: SubscribeCommand,
+    ) -> RpcResult<()> {
+        match command {
+            SubscribeCommand::Start => self.start_notify(id, notification_type).await,
+            SubscribeCommand::Stop => self.stop_notify(id, notification_type).await,
+        }
+    }
 }
 
 pub type DynSubscriptionManager = Arc<dyn SubscriptionManager>;

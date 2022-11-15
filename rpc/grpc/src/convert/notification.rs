@@ -1,6 +1,6 @@
 use rpc_core::{Notification, RpcError, RpcResult};
 
-use crate::protowire::{kaspad_response::Payload, BlockAddedNotificationMessage, KaspadResponse};
+use crate::protowire::{kaspad_response::Payload, BlockAddedNotificationMessage, KaspadResponse, RpcNotifyCommand};
 
 // ----------------------------------------------------------------------------
 // rpc_core to protowire
@@ -31,6 +31,15 @@ impl From<&rpc_core::Notification> for Payload {
 impl From<&rpc_core::BlockAddedNotification> for BlockAddedNotificationMessage {
     fn from(item: &rpc_core::BlockAddedNotification) -> Self {
         Self { block: Some((&item.block).into()) }
+    }
+}
+
+impl From<rpc_core::api::ops::SubscribeCommand> for RpcNotifyCommand {
+    fn from(item: rpc_core::api::ops::SubscribeCommand) -> Self {
+        match item {
+            rpc_core::api::ops::SubscribeCommand::Start => RpcNotifyCommand::NotifyStart,
+            rpc_core::api::ops::SubscribeCommand::Stop => RpcNotifyCommand::NotifyStop,
+        }
     }
 }
 
@@ -65,6 +74,15 @@ impl TryFrom<&BlockAddedNotificationMessage> for rpc_core::BlockAddedNotificatio
             Ok(Self { block: block.try_into()? })
         } else {
             Err(RpcError::MissingRpcFieldError("BlockAddedNotificationMessage".to_string(), "block".to_string()))
+        }
+    }
+}
+
+impl From<RpcNotifyCommand> for rpc_core::api::ops::SubscribeCommand {
+    fn from(item: RpcNotifyCommand) -> Self {
+        match item {
+            RpcNotifyCommand::NotifyStart => rpc_core::api::ops::SubscribeCommand::Start,
+            RpcNotifyCommand::NotifyStop => rpc_core::api::ops::SubscribeCommand::Stop,
         }
     }
 }

@@ -9,7 +9,6 @@ use rpc_core::notify::channel::NotificationChannel;
 use rpc_core::notify::listener::{ListenerID, ListenerReceiverSide, SendingChangedUtxo};
 use rpc_core::notify::subscriber::DynSubscriptionManager;
 use rpc_core::notify::subscriber::Subscriber;
-use rpc_core::notify::subscriber::SubscriptionManager;
 use rpc_core::RpcResult;
 use rpc_core::{
     api::rpc::RpcApi as RpcApiT,
@@ -153,19 +152,24 @@ impl Rpc for RpcService {
                     Ok(Some(request)) => {
                         println!("Request is {:?}", request);
                         let response: KaspadResponse = match request.payload {
-                            Some(Payload::GetBlockRequest(request)) => match (&request).try_into() {
+                            Some(Payload::GetBlockRequest(ref request)) => match request.try_into() {
                                 Ok(request) => core_service.get_block(request).await.into(),
                                 Err(err) => GetBlockResponseMessage::from(err).into(),
                             },
 
-                            Some(Payload::GetInfoRequest(request)) => match (&request).try_into() {
+                            Some(Payload::GetInfoRequest(ref request)) => match request.try_into() {
                                 Ok(request) => core_service.get_info(request).await.into(),
                                 Err(err) => GetInfoResponseMessage::from(err).into(),
                             },
 
-                            Some(Payload::NotifyBlockAddedRequest(_request)) => NotifyBlockAddedResponseMessage::from(
-                                notifier.clone().start_notify(listener_id, rpc_core::NotificationType::BlockAdded).await,
-                            )
+                            Some(Payload::NotifyBlockAddedRequest(ref request)) => NotifyBlockAddedResponseMessage::from({
+                                let request = rpc_core::NotifyBlockAddedRequest::try_from(request).unwrap();
+                                notifier.clone().execute_notify_command(
+                                    listener_id,
+                                    rpc_core::NotificationType::BlockAdded,
+                                    request.command,
+                                )
+                            })
                             .into(),
 
                             // TODO: This must be replaced by actual handling of all request variants

@@ -10,15 +10,15 @@ impl KaspadRequest {
 
 impl kaspad_request::Payload {
     // FIXME: Enhance protowire with Subscribe Commands
-    pub fn from_notification_type(notification_type: &NotificationType, _command: SubscribeCommand) -> Self {
+    pub fn from_notification_type(notification_type: &NotificationType, command: SubscribeCommand) -> Self {
         match notification_type {
             NotificationType::BlockAdded => {
-                kaspad_request::Payload::NotifyBlockAddedRequest(NotifyBlockAddedRequestMessage {})
+                kaspad_request::Payload::NotifyBlockAddedRequest(NotifyBlockAddedRequestMessage { command: command.into() })
             }
 
             // TODO: implement all other notifications
             _ => {
-                kaspad_request::Payload::NotifyBlockAddedRequest(NotifyBlockAddedRequestMessage {})
+                kaspad_request::Payload::NotifyBlockAddedRequest(NotifyBlockAddedRequestMessage { command: command.into() })
             }
             // NotificationType::VirtualSelectedParentChainChanged => todo!(),
             // NotificationType::FinalityConflicts => todo!(),

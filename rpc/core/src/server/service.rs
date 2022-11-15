@@ -91,6 +91,7 @@ impl rpc::RpcApi for RpcApi {
             server_version: "0.12.8".to_string(),
             is_utxo_indexed: false,
             is_synced: false,
+            has_notify_command: true,
         })
     }
 

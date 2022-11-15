@@ -21,11 +21,14 @@ async fn main() -> Result<(), Error> {
     let args = Args::parse();
 
     // -------------------------------------------------------------------------------------------
-    println!("*** RUST PROTOTYPE ***");
+    println!("************************");
+    println!("***  RUST PROTOTYPE  ***");
+    println!("************************");
     // -------------------------------------------------------------------------------------------
 
     let mut c = RpcApiGrpc::connect("http://[::1]:10000".to_string()).await?;
     c.start().await;
+    println!("connection to rust prototype established");
 
     let c_listener = c.register_new_listener(None);
     let c_listener_recv = c_listener.recv_channel.clone();
@@ -49,31 +52,33 @@ async fn main() -> Result<(), Error> {
     // Register for notifications
     c.start_notify(c_listener.id, rpc_core::NotificationType::BlockAdded).await?;
 
-    println!("REQUEST Existing hash");
+    println!("REQUEST RP Existing hash");
     let request = GetBlockRequest {
         hash: RpcHash::from_str("8270e63a0295d7257785b9c9b76c9a2efb7fb8d6ac0473a1bff1571c5030e995")?,
         include_transactions: false,
     };
     let response = c.get_block(request).await;
-    println!("RESPONSE = {:#?}", response);
+    println!("RESPONSE RP = {:#?}", response);
 
     sleep(Duration::from_millis(3_000)).await;
 
-    println!("REQUEST Missing hash");
+    println!("REQUEST RP Missing hash");
     let request = GetBlockRequest {
         hash: Hash::from_str("0070e63a0295d7257785b9c9b76c9a2efb7fb8d6ac0473a1bff1571c5030e995")?,
         include_transactions: false,
     };
     let response = c.get_block(request).await;
-    println!("RESPONSE = {:#?}", response);
+    println!("RESPONSE RP = {:#?}", response);
 
-    println!("REQUEST info");
+    println!("REQUEST RP info");
     let request = GetInfoRequest {};
     let response = c.get_info(request).await;
-    println!("RESPONSE = {:#?}", response);
+    println!("RESPONSE RP = {:#?}", response);
 
     // -------------------------------------------------------------------------------------------
-    println!("*** GO KASPA NODE ***");
+    println!("***********************");
+    println!("***  GO KASPA NODE  ***");
+    println!("***********************");
     // -------------------------------------------------------------------------------------------
 
     let mut c_public = RpcApiGrpc::connect(args.address).await?;
@@ -100,13 +105,13 @@ async fn main() -> Result<(), Error> {
     // Register for notifications
     c_public.start_notify(c_public_listener.id, rpc_core::NotificationType::BlockAdded).await?;
 
-    // println!("REQUEST Public node, existing hash");
-    // let request = GetBlockRequest {
-    //     hash: Hash::from_str("49beb748fd67dd354de4077aecdbba47f05bedb9dc069870c1682e6043df3abf")?,
-    //     include_transactions: false
-    // };
-    // let response = c_public.get_block(request).await;
-    // println!("RESPONSE = {:#?}", response);
+    println!("REQUEST GK Public node, existing hash");
+    let request = GetBlockRequest {
+        hash: Hash::from_str("49beb748fd67dd354de4077aecdbba47f05bedb9dc069870c1682e6043df3abf")?,
+        include_transactions: false,
+    };
+    let response = c_public.get_block(request).await;
+    println!("RESPONSE GK = {:#?}", response);
 
     // println!("REQUEST Public node, existing hash");
     // let request = GetBlockRequest {
@@ -137,7 +142,11 @@ async fn main() -> Result<(), Error> {
     // let response = c_public.get_info(request).await;
     // println!("RESPONSE = {:#?}", response);
 
-    sleep(Duration::from_millis(5000)).await;
+    sleep(Duration::from_millis(2500)).await;
+    println!("Stop getting notifications from RUST PROTOTYPE");
+    c.stop_notify(c_listener.id, rpc_core::NotificationType::BlockAdded).await?;
+
+    sleep(Duration::from_millis(3000)).await;
 
     // Closing connections
     println!("Shutting down RUST PROTOTYPE connected client");

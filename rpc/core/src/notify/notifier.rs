@@ -7,7 +7,7 @@ use super::{
     result::Result,
     subscriber::{Subscriber, SubscriptionManager},
 };
-use crate::{Notification, NotificationType, RpcResult};
+use crate::{api::ops::SubscribeCommand, Notification, NotificationType, RpcResult};
 use ahash::AHashMap;
 use async_std::channel::{Receiver, Sender};
 use async_trait::async_trait;
@@ -41,6 +41,15 @@ impl Notifier {
 
     pub fn unregister_listener(&self, id: ListenerID) -> Result<()> {
         self.inner.clone().unregister_listener(id)
+    }
+
+    pub fn execute_notify_command(
+        self: Arc<Self>,
+        id: ListenerID,
+        notification_type: NotificationType,
+        command: SubscribeCommand,
+    ) -> Result<()> {
+        self.inner.clone().execute_notify_command(id, notification_type, command)
     }
 
     pub fn start_notify(&self, id: ListenerID, notification_type: NotificationType) -> Result<()> {
@@ -264,10 +273,24 @@ impl Inner {
         Ok(())
     }
 
+    pub fn execute_notify_command(
+        self: Arc<Self>,
+        id: ListenerID,
+        notification_type: NotificationType,
+        command: SubscribeCommand,
+    ) -> Result<()> {
+        match command {
+            SubscribeCommand::Start => self.start_notify(id, notification_type),
+            SubscribeCommand::Stop => self.stop_notify(id, notification_type),
+        }
+    }
+
     fn start_notify(self: Arc<Self>, id: ListenerID, notification_type: NotificationType) -> Result<()> {
         let event: EventType = (&notification_type).into();
         let mut listeners = self.listeners.lock().unwrap();
         if let Some(listener) = listeners.get_mut(&id) {
+            println!("[Notifier] start notify to {0} about {1:?}", id, notification_type);
+
             // Any mutation in the listener will trigger a dispatch of a brand new ListenerSenderSide
             // eventually creating or replacing this listener in the matching dispatcher.
 
@@ -291,6 +314,8 @@ impl Inner {
         let event: EventType = (&notification_type).into();
         let mut listeners = self.listeners.lock().unwrap();
         if let Some(listener) = listeners.get_mut(&id) {
+            println!("[Notifier] stop notify to {0} about {1:?}", id, notification_type);
+
             if listener.toggle(notification_type, false) {
                 let msg = DispatchMessage::RemoveListener(listener.id());
                 self.clone().try_send_dispatch(event, msg)?;

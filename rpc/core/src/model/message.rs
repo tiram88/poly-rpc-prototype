@@ -1,7 +1,7 @@
 use borsh::{BorshDeserialize, BorshSchema, BorshSerialize};
 use serde::{Deserialize, Serialize};
 
-use crate::{RpcBlock, RpcHash};
+use crate::{api::ops::SubscribeCommand, RpcBlock, RpcHash};
 
 /// GetBlockRequest requests information about a specific block
 #[derive(Clone, Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
@@ -20,7 +20,6 @@ pub struct GetBlockResponse {
     pub block: RpcBlock,
     // According to app\rpc\rpchandlers\get_block.go
     // block and error as mutually exclusive
-    // RpcError error = 1000;
 }
 
 /// NotifyBlockAddedRequest registers this connection for blockAdded notifications.
@@ -28,13 +27,13 @@ pub struct GetBlockResponse {
 /// See: [`BlockAddedNotification`]
 #[derive(Clone, Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct NotifyBlockAddedRequest;
+pub struct NotifyBlockAddedRequest {
+    pub command: SubscribeCommand,
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct NotifyBlockAddedResponse {
-    // RpcError error = 1000;
-}
+pub struct NotifyBlockAddedResponse {}
 
 /// BlockAddedNotification is sent whenever a blocks has been added (NOT accepted)
 /// into the DAG.
@@ -59,5 +58,5 @@ pub struct GetInfoResponse {
     pub server_version: String, // FIXME ?
     pub is_utxo_indexed: bool,
     pub is_synced: bool,
-    // RpcError error = 1000;
+    pub has_notify_command: bool,
 }

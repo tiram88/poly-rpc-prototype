@@ -26,6 +26,9 @@ pub enum RpcError {
 
     #[error("Missing required field {0}.{1}")]
     MissingRpcFieldError(String, String),
+
+    #[error("Feature not supported")]
+    UnsupportedFeature,
 }
 
 impl From<String> for RpcError {

@@ -13,7 +13,7 @@ use rpc_core::{
         notifier::Notifier,
         subscriber::Subscriber,
     },
-    GetBlockRequest, GetBlockResponse, GetInfoRequest, GetInfoResponse, NotificationType, RpcResult,
+    GetBlockRequest, GetBlockResponse, GetInfoRequest, GetInfoResponse, NotificationType, RpcError, RpcResult,
 };
 
 mod errors;
@@ -44,6 +44,10 @@ impl RpcApiGrpc {
     pub async fn stop(&self) -> Result<()> {
         self.notifier.clone().stop().await?;
         Ok(())
+    }
+
+    pub fn handle_stop_notify(&self) -> bool {
+        self.inner.handle_stop_notify()
     }
 
     pub async fn shutdown(&mut self) -> Result<()> {
@@ -86,7 +90,11 @@ impl RpcApi for RpcApiGrpc {
 
     /// Stop sending notifications of some type to a listener.
     async fn stop_notify(&self, id: ListenerID, notification_type: NotificationType) -> RpcResult<()> {
-        self.notifier.stop_notify(id, notification_type)?;
-        Ok(())
+        if self.handle_stop_notify() {
+            self.notifier.stop_notify(id, notification_type)?;
+            Ok(())
+        } else {
+            Err(RpcError::UnsupportedFeature)
+        }
     }
 }

@@ -1,3 +1,6 @@
+use borsh::{BorshDeserialize, BorshSchema, BorshSerialize};
+use serde::{Deserialize, Serialize};
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[repr(u32)]
 pub enum RpcApiOps {
@@ -45,9 +48,27 @@ impl From<RpcApiOps> for u32 {
     }
 }
 
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, BorshSerialize, BorshDeserialize, BorshSchema)]
 pub enum SubscribeCommand {
     Start = 0,
     Stop = 1,
+}
+
+impl From<SubscribeCommand> for i32 {
+    fn from(item: SubscribeCommand) -> Self {
+        item as i32
+    }
+}
+
+impl From<i32> for SubscribeCommand {
+    // We make this conversion infallible by falling back to Start from any unexpected value.
+    fn from(item: i32) -> Self {
+        if item == 1 {
+            SubscribeCommand::Stop
+        } else {
+            SubscribeCommand::Start
+        }
+    }
 }
 
 #[cfg(test)]

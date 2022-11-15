@@ -10,7 +10,7 @@ use kaspa_utils::triggers::DuplexTrigger;
 use rpc_core::{
     api::ops::{RpcApiOps, SubscribeCommand},
     notify::{events::EventType, listener::ListenerID, subscriber::SubscriptionManager},
-    Notification, NotificationSender, NotificationType, RpcResult,
+    GetInfoResponse, Notification, NotificationSender, NotificationType, RpcResult,
 };
 use std::{
     collections::VecDeque,
@@ -92,10 +92,10 @@ pub struct Resolver {
     handle_stop_notify: bool,
 
     // Pushing incoming notifications forward
-    notify_channel: NotificationSender,
+    notify_send: NotificationSender,
 
     // Sending to server
-    send_channel: Sender<KaspadRequest>,
+    request_send: Sender<KaspadRequest>,
     pending_calls: Arc<Mutex<VecDeque<Pending>>>,
     sender_is_running: AtomicBool,
     sender_shutdown: DuplexTrigger,
@@ -112,12 +112,17 @@ pub struct Resolver {
 }
 
 impl Resolver {
-    pub(crate) fn new(client: RpcClient<Channel>, notify_channel: NotificationSender, send_channel: Sender<KaspadRequest>) -> Self {
+    pub(crate) fn new(
+        client: RpcClient<Channel>,
+        handle_stop_notify: bool,
+        notify_send: NotificationSender,
+        request_send: Sender<KaspadRequest>,
+    ) -> Self {
         Self {
             _inner: client,
-            handle_stop_notify: false,
-            notify_channel,
-            send_channel,
+            handle_stop_notify,
+            notify_send,
+            request_send,
             pending_calls: Arc::new(Mutex::new(VecDeque::new())),
             sender_is_running: AtomicBool::new(false),
             sender_shutdown: DuplexTrigger::new(),
@@ -130,7 +135,7 @@ impl Resolver {
         }
     }
 
-    pub(crate) async fn connect(address: String, notify_channel: NotificationSender) -> Result<Arc<Self>> {
+    pub(crate) async fn connect(address: String, notify_send: NotificationSender) -> Result<Arc<Self>> {
         let channel = Endpoint::from_shared(address.clone())?
             .timeout(tokio::time::Duration::from_secs(5))
             .connect_timeout(tokio::time::Duration::from_secs(20))
@@ -142,32 +147,50 @@ impl Resolver {
             RpcClient::new(channel).send_compressed(CompressionEncoding::Gzip).accept_compressed(CompressionEncoding::Gzip);
 
         // External channel
-        let (send_channel, recv) = mpsc::channel(2);
+        let (request_send, request_recv) = mpsc::channel(16);
 
-        // Force the opening of the stream when connected to a go kaspad server
-        //
-        // TODO: This wll also be useful to save here the actual capability of the server
-        // to handle request ids for req/resp matching.
-        send_channel.send(GetInfoRequestMessage {}.into()).await?;
+        // Force the opening of the stream when connected to a go kaspad server.
+        // This is also needed to query server capabilities.
+        request_send.send(GetInfoRequestMessage {}.into()).await?;
 
         // Internal channel
-        let (send, recv_channel) = mpsc::channel(2);
+        let (response_send, response_recv) = mpsc::channel(16);
 
         // Actual KaspadRequest to KaspadResponse stream
-        let stream: Streaming<KaspadResponse> = client.message_stream(ReceiverStream::new(recv)).await?.into_inner();
+        let mut stream: Streaming<KaspadResponse> = client.message_stream(ReceiverStream::new(request_recv)).await?.into_inner();
 
-        let resolver = Arc::new(Resolver::new(client, notify_channel, send_channel));
+        // Collect server capabilities as stated in GetInfoResponse
+        let mut handle_stop_notify = false;
+
+        match stream.message().await? {
+            Some(ref msg) => {
+                println!("GetInfo got response {:?}", msg);
+                let response: RpcResult<GetInfoResponse> = msg.try_into();
+                if let Ok(response) = response {
+                    handle_stop_notify = response.has_notify_command;
+                }
+            }
+            None => {
+                return Err(Error::String("gRPC stream was closed by the server".to_string()));
+            }
+        }
+
+        let resolver = Arc::new(Resolver::new(client, handle_stop_notify, notify_send, request_send));
 
         // KaspadRequest timeout cleaner
         resolver.clone().timeout_task();
 
         // KaspaRequest sender
-        resolver.clone().sender_task(stream, send);
+        resolver.clone().sender_task(stream, response_send);
 
         // KaspadResponse receiver
-        resolver.clone().receiver_task(recv_channel);
+        resolver.clone().receiver_task(response_recv);
 
         Ok(resolver)
+    }
+
+    pub(crate) fn handle_stop_notify(&self) -> bool {
+        self.handle_stop_notify
     }
 
     pub(crate) async fn call(&self, op: RpcApiOps, request: impl Into<KaspadRequest>) -> Result<KaspadResponse> {
@@ -184,7 +207,7 @@ impl Resolver {
                 drop(pending_calls);
             }
 
-            self.send_channel.send(request).await.map_err(|_| Error::ChannelRecvError)?;
+            self.request_send.send(request).await.map_err(|_| Error::ChannelRecvError)?;
 
             receiver.await?
         } else {
@@ -322,7 +345,7 @@ impl Resolver {
                     println!("[Resolver] handle_response received notification: {:?}", event);
 
                     // Here we ignore any returned error
-                    self.notify_channel.try_send(Arc::new(notification));
+                    self.notify_send.try_send(Arc::new(notification));
                 }
                 Err(err) => {
                     println!("[Resolver] handle_response error converting reponse into notification: {:?}", err);
@@ -402,7 +425,6 @@ impl SubscriptionManager for Resolver {
     }
 
     async fn stop_notify(self: Arc<Self>, _: ListenerID, notification_type: NotificationType) -> RpcResult<()> {
-        // FIXME: Enhance protowire with Subscribe Commands (handle Stop also)
         if self.handle_stop_notify {
             println!("[Resolver] stop_notify: {:?}", notification_type);
             let request = kaspad_request::Payload::from_notification_type(&notification_type, SubscribeCommand::Stop);

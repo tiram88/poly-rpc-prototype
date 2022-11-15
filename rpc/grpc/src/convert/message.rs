@@ -36,8 +36,8 @@ impl From<RpcResult<&rpc_core::GetBlockResponse>> for protowire::GetBlockRespons
 }
 
 impl From<&rpc_core::NotifyBlockAddedRequest> for protowire::NotifyBlockAddedRequestMessage {
-    fn from(_item: &rpc_core::NotifyBlockAddedRequest) -> Self {
-        Self {}
+    fn from(item: &rpc_core::NotifyBlockAddedRequest) -> Self {
+        Self { command: item.command.into() }
     }
 }
 
@@ -56,12 +56,13 @@ impl From<&rpc_core::GetInfoRequest> for protowire::GetInfoRequestMessage {
 impl From<RpcResult<&rpc_core::GetInfoResponse>> for protowire::GetInfoResponseMessage {
     fn from(item: RpcResult<&rpc_core::GetInfoResponse>) -> Self {
         match item {
-            Ok(req) => Self {
-                p2p_id: req.p2p_id.clone(),
-                mempool_size: req.mempool_size,
-                server_version: req.server_version.clone(),
-                is_utxo_indexed: req.is_utxo_indexed,
-                is_synced: req.is_synced,
+            Ok(response) => Self {
+                p2p_id: response.p2p_id.clone(),
+                mempool_size: response.mempool_size,
+                server_version: response.server_version.clone(),
+                is_utxo_indexed: response.is_utxo_indexed,
+                is_synced: response.is_synced,
+                has_notify_command: response.has_notify_command,
                 error: None,
             },
             Err(err) => Self {
@@ -70,6 +71,7 @@ impl From<RpcResult<&rpc_core::GetInfoResponse>> for protowire::GetInfoResponseM
                 server_version: String::default(),
                 is_utxo_indexed: false,
                 is_synced: false,
+                has_notify_command: false,
                 error: Some(err.into()),
             },
         }
@@ -119,8 +121,8 @@ impl TryFrom<&protowire::GetBlockResponseMessage> for rpc_core::GetBlockResponse
 
 impl TryFrom<&protowire::NotifyBlockAddedRequestMessage> for rpc_core::NotifyBlockAddedRequest {
     type Error = RpcError;
-    fn try_from(_item: &protowire::NotifyBlockAddedRequestMessage) -> RpcResult<Self> {
-        Ok(Self {})
+    fn try_from(item: &protowire::NotifyBlockAddedRequestMessage) -> RpcResult<Self> {
+        Ok(Self { command: item.command.into() })
     }
 }
 
@@ -150,6 +152,7 @@ impl TryFrom<&protowire::GetInfoResponseMessage> for rpc_core::GetInfoResponse {
                 server_version: item.server_version.clone(),
                 is_utxo_indexed: item.is_utxo_indexed,
                 is_synced: item.is_synced,
+                has_notify_command: item.has_notify_command,
             })
         }
     }
