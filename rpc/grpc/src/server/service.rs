@@ -173,7 +173,7 @@ impl Rpc for RpcService {
                             .into(),
 
                             // TODO: This must be replaced by actual handling of all request variants
-                            _ => GetBlockResponseMessage::from(rpc_core::RpcError::String(
+                            _ => GetBlockResponseMessage::from(rpc_core::RpcError::General(
                                 "Server-side API Not implemented".to_string(),
                             ))
                             .into(),

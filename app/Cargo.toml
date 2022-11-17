@@ -20,6 +20,7 @@ path="./src/client.rs"
 
 [dependencies]
 hashes.workspace = true
+kaspa-core.workspace = true
 rpc-grpc.workspace = true
 rpc-core.workspace = true
 consensus.workspace = true

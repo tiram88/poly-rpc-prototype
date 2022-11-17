@@ -4,12 +4,15 @@
 //! All data provided by the RCP server can be trusted by the client
 //! No data submitted by the client to the server can be trusted
 
-use crate::notify::channel::NotificationChannel;
-use crate::notify::listener::{ListenerID, ListenerReceiverSide};
-use crate::{model::*, NotificationType};
+use crate::{
+    model::*,
+    notify::{
+        channel::NotificationChannel,
+        listener::{ListenerID, ListenerReceiverSide},
+    },
+    NotificationType, RpcResult,
+};
 use async_trait::async_trait;
-// use crate::notifications::*;
-use crate::result::*;
 
 #[async_trait]
 pub trait RpcApi: Sync + Send {

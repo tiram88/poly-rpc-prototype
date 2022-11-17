@@ -6,9 +6,6 @@ pub enum RpcError {
     #[error("Not implemented")]
     NotImplemented,
 
-    #[error("{0}")]
-    String(String),
-
     #[error("Integer downsize conversion error {0}")]
     IntConversionError(#[from] TryFromIntError),
 
@@ -29,16 +26,21 @@ pub enum RpcError {
 
     #[error("Feature not supported")]
     UnsupportedFeature,
+
+    #[error("{0}")]
+    General(String),
 }
 
 impl From<String> for RpcError {
     fn from(value: String) -> Self {
-        RpcError::String(value)
+        RpcError::General(value)
     }
 }
 
 impl From<&str> for RpcError {
     fn from(value: &str) -> Self {
-        RpcError::String(value.to_string())
+        RpcError::General(value.to_string())
     }
 }
+
+pub type RpcResult<T> = std::result::Result<T, crate::RpcError>;
