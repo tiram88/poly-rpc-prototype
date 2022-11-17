@@ -1,17 +1,15 @@
 //! Core server implementation for ClientAPI
 
 use super::collector::{ConsensusCollector, ConsensusNotificationReceiver};
-use crate::api::rpc;
-use crate::errors::*;
-use crate::result::*;
 use crate::{
+    api::rpc,
     model::*,
     notify::{
         channel::NotificationChannel,
         listener::{ListenerID, ListenerReceiverSide, SendingChangedUtxo},
         notifier::Notifier,
     },
-    NotificationType,
+    NotificationType, RpcError, RpcResult,
 };
 use async_trait::async_trait;
 use hashes::Hash;
@@ -76,7 +74,7 @@ impl rpc::RpcApi for RpcApi {
     async fn get_block(&self, req: GetBlockRequest) -> RpcResult<GetBlockResponse> {
         // This is a test to simulate a consensus error
         if req.hash.as_bytes()[0] == 0 {
-            return Err(RpcError::String(format!("Block {0} not found", req.hash)));
+            return Err(RpcError::General(format!("Block {0} not found", req.hash)));
         }
 
         // This is a test to simulate a respons containing a block

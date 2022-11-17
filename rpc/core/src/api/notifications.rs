@@ -55,7 +55,7 @@ impl Display for Notification {
             Notification::BlockAdded(ref notification) => {
                 write!(f, "Notification BlockAdded with hash {}", notification.block.verbose_data.hash)
             }
-            _ => write!(f, "Notification whith unimplemented type"),
+            _ => write!(f, "Notification with unimplemented type"),
             // Notification::VirtualSelectedParentChainChanged(_) => todo!(),
             // Notification::FinalityConflict(_) => todo!(),
             // Notification::FinalityConflictResolved(_) => todo!(),

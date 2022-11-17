@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "app",
+    "core",
     "hashes",
     "rpc/core",
     "rpc/grpc",
@@ -17,6 +18,7 @@ include = ["src/**/*.rs", "Cargo.toml"]
 
 [workspace.dependencies]
 app = { path = "app" }
+kaspa-core = { path = "core" }
 hashes = { path = "hashes" }
 rpc-core = { path = "rpc/core" }
 rpc-grpc = { path = "rpc/grpc" }
@@ -30,6 +32,7 @@ serde = { version = "1", features = ["derive", "rc"] }
 futures-util = { version = "0.3", default-features = false, features = ["alloc"] }
 bincode = { version = "1", default-features = false }
 tokio = { version = "1", features = ["sync"] }
+wasm-bindgen = { version = "0.2", features = ["serde-serialize"] }
 criterion = { version = "0.4", default-features = false }
 tonic = { version = "0.8", features = ["gzip"] }
 prost = { version = "0.11" }

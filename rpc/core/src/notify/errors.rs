@@ -17,7 +17,7 @@ pub enum Error {
 
 impl From<Error> for RpcError {
     fn from(value: Error) -> Self {
-        RpcError::String(value.to_string())
+        RpcError::General(value.to_string())
     }
 }
 
